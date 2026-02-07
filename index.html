@@ -39,28 +39,41 @@
     <section class="panel">
         <h2>Simulation Controls</h2>
 
-        <div class="controls">
-            <label for="sims-input">Simulations</label>
-            <input id="sims-input" type="number" min="1" max="2000000" step="1000" value="200000">
+        <div class="controls-grid">
+            <div class="controls-col">
+                <div class="controls">
+                    <label for="sims-input">Simulations</label>
+                    <input id="sims-input" type="number" min="1" max="2000000" step="1000" value="200000">
 
-            <div class="default-row">
-                <span id="sims-recommend" class="recommend-pill">Recommended default: 200,000</span>
-                <button id="use-default-btn" type="button" class="secondary-btn">Use default</button>
-            </div>
-
-            <p id="sims-warning" class="sims-warning" hidden></p>
-
-            <div class="seed-label-row">
-                <label for="seed-input">Seed (optional)</label>
-                <details class="seed-help">
-                    <summary aria-label="Seed help" title="Seed help">?</summary>
-                    <div>
-                        Blank/random gives a different result each run. Using the same seed gives reproducible results.
-                        Seed only controls the simulation PRNG, not fetched lottery data. Example: 12345.
+                    <div class="default-row">
+                        <span id="sims-recommend" class="recommend-pill">Recommended default: 200,000</span>
+                        <button id="use-default-btn" type="button" class="secondary-btn">Use default</button>
                     </div>
-                </details>
+
+                    <p id="sims-warning" class="sims-warning" hidden></p>
+                </div>
             </div>
-            <input id="seed-input" type="number" min="0" max="4294967295" placeholder="random">
+
+            <div class="controls-col advanced-col">
+                <div class="advanced-head">
+                    <span>Advanced: Seed</span>
+                    <button
+                        id="toggle-advanced-btn"
+                        type="button"
+                        class="secondary-btn advanced-toggle"
+                        aria-expanded="false"
+                        aria-controls="advanced-seed-panel"
+                    >Show</button>
+                </div>
+                <div id="advanced-seed-panel" class="advanced-panel" hidden>
+                    <p class="seed-help-copy">
+                        Leave blank for random draws (different result each run). Use the same seed for reproducible runs.
+                        The seed affects only simulation randomness, not fetched lottery data. Example seeds: 12345, 999.
+                    </p>
+                    <label for="seed-input">Seed (optional)</label>
+                    <input id="seed-input" type="number" min="0" max="4294967295" placeholder="random">
+                </div>
+            </div>
         </div>
 
         <button id="run-btn" type="button" disabled>Run simulation</button>

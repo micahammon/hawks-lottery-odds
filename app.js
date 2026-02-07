@@ -14,6 +14,8 @@ const refs = {
     simsRecommend: document.getElementById("sims-recommend"),
     simsWarning: document.getElementById("sims-warning"),
     useDefaultBtn: document.getElementById("use-default-btn"),
+    toggleAdvancedBtn: document.getElementById("toggle-advanced-btn"),
+    advancedSeedPanel: document.getElementById("advanced-seed-panel"),
     seedInput: document.getElementById("seed-input"),
     runBtn: document.getElementById("run-btn"),
     resultsSection: document.getElementById("results"),
@@ -35,12 +37,14 @@ const state = {
     teamsReady: false,
     missingTeams: [],
     shouldScrollAfterRun: false,
+    advancedSeedOpen: false,
 };
 
 refs.refreshBtn.addEventListener("click", () => loadData(true));
 refs.runBtn.addEventListener("click", runSimulation);
 refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
 refs.simsInput.addEventListener("input", updateSimsFeedback);
+refs.toggleAdvancedBtn.addEventListener("click", toggleAdvancedSeed);
 
 initControls();
 loadData(false);
@@ -48,6 +52,7 @@ loadData(false);
 function initControls() {
     refs.simsInput.value = String(DEFAULT_SIMS);
     refs.simsRecommend.textContent = `Recommended default: ${DEFAULT_SIMS.toLocaleString()}`;
+    setAdvancedSeedOpen(false, false);
     updateSimsFeedback();
 }
 
@@ -55,6 +60,21 @@ function applyRecommendedDefault() {
     refs.simsInput.value = String(DEFAULT_SIMS);
     updateSimsFeedback();
     refs.simsInput.focus();
+}
+
+function toggleAdvancedSeed() {
+    setAdvancedSeedOpen(!state.advancedSeedOpen, true);
+}
+
+function setAdvancedSeedOpen(open, focusInput) {
+    state.advancedSeedOpen = open;
+    refs.advancedSeedPanel.hidden = !open;
+    refs.toggleAdvancedBtn.setAttribute("aria-expanded", String(open));
+    refs.toggleAdvancedBtn.textContent = open ? "Hide" : "Show";
+
+    if (open && focusInput) {
+        refs.seedInput.focus();
+    }
 }
 
 function updateSimsFeedback() {
@@ -309,43 +329,49 @@ function renderChart(pickProbs) {
     }
 
     const maxProb = Math.max(...values, 0);
-    const paddedMax = Math.max(maxProb * 1.12, 0.05);
-    refs.chartScaleNote.textContent = `Chart scale: 0% to ${(paddedMax * 100).toFixed(2)}% (top-4 picks highlighted).`;
+    const scaleMax = Math.max(maxProb / 0.88, 0.02);
+    refs.chartScaleNote.textContent = `Chart scale: 0% to ${(scaleMax * 100).toFixed(2)}% (tallest bar uses ~88% height).`;
 
-    renderChartYLabels(paddedMax);
+    renderChartYLabels(scaleMax);
 
     for (let pick = 1; pick <= 14; pick += 1) {
         const prob = pickProbs[pick] ?? 0;
-        const heightPct = paddedMax > 0 ? (prob / paddedMax) * 100 : 0;
+        const heightPct = scaleMax > 0 ? (prob / scaleMax) * 100 : 0;
 
         const bar = document.createElement("div");
         bar.className = pick <= 4 ? "bar top4" : "bar";
 
         const valueLabel = document.createElement("div");
         valueLabel.className = "bar-value";
-        valueLabel.textContent = prob >= 0.01 ? toPercent(prob) : "";
+        valueLabel.textContent = prob > 0.01 ? toPercent(prob) : "";
+
+        const barBody = document.createElement("div");
+        barBody.className = "bar-body";
 
         const fill = document.createElement("div");
         fill.className = "bar-fill";
-        fill.style.height = `${Math.max(heightPct, 0)}%`;
+        fill.style.height = `${Math.max(Math.min(heightPct, 100), 0)}%`;
 
         const pickLabel = document.createElement("div");
         pickLabel.className = "bar-label";
         pickLabel.textContent = `${pick}`;
 
+        barBody.appendChild(fill);
         bar.appendChild(valueLabel);
-        bar.appendChild(fill);
+        bar.appendChild(barBody);
         bar.appendChild(pickLabel);
         refs.pickChart.appendChild(bar);
     }
 }
 
-function renderChartYLabels(maxValue) {
+function renderChartYLabels(scaleMax) {
     refs.chartYLabels.innerHTML = "";
-    for (let i = 4; i >= 0; i -= 1) {
+    const tickCount = 5;
+
+    for (let i = tickCount; i >= 0; i -= 1) {
         const tick = document.createElement("div");
-        const ratio = i / 4;
-        tick.textContent = `${(maxValue * ratio * 100).toFixed(1)}%`;
+        const ratio = i / tickCount;
+        tick.textContent = `${(scaleMax * ratio * 100).toFixed(1)}%`;
         refs.chartYLabels.appendChild(tick);
     }
 }
@@ -389,6 +415,7 @@ function setRunning(running) {
     refs.seedInput.disabled = running;
     refs.refreshBtn.disabled = running;
     refs.useDefaultBtn.disabled = running;
+    refs.toggleAdvancedBtn.disabled = running;
 
     if (!running) {
         stopWorker();
@@ -400,5 +427,3 @@ function setRunning(running) {
 function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.data || !state.teamsReady;
 }
-
-

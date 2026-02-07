@@ -1,9 +1,13 @@
 # TASKS
 
 ## current
-- [ ] Await user validation in-browser for controls UX and chart readability
+- [ ] Await browser validation of advanced seed disclosure and chart readability improvements
 
 ## done
+- [x] Rework controls into two-column layout with advanced seed disclosure UX
+- [x] Enlarge and rescale chart so bars are visually readable at a glance
+- [x] Improve chart axis/ticks/labels and responsive behavior for small screens
+- [x] Validate JS syntax and provide focused verification checklist
 - [x] Improve Simulation Controls UX with recommended default and seed help
 - [x] Add post-success auto-scroll to results with reduced-motion handling
 - [x] Improve bar chart readability with y-scale labels, top-4 highlighting, and mobile chart scrolling
@@ -19,9 +23,8 @@
 - [x] Audit `worker.js` assumptions against `odds_calc.py` and document unavoidable RNG difference
 
 ## notes
-- [ ] Kept GitHub Pages paths as `./data/lottery.json` and `./worker.js`
-- [ ] Recommended default is `200000`; warning shown for runs above `1000000`
-- [ ] Seed help uses accessible `<details>` so it works on click/tap (mobile) and desktop
-- [ ] Auto-scroll triggers only after successful run and only when results were previously hidden
-- [ ] Chart now uses padded max scale, y-axis labels, optional value labels (>1%), and top-4 visual highlighting
+- [ ] Simulation math unchanged; only `index.html`, `styles.css`, and `app.js` updated for this request
+- [ ] Advanced seed uses real button with `aria-expanded` + `aria-controls`; expands/collapses and focuses input on open
+- [ ] Chart now uses scale `maxProb / 0.88` so tallest bar is ~88% of chart height
+- [ ] Chart has explicit y-axis ticks, stronger baseline, top-4 highlighting band, and horizontal scroll support on small screens
 - [ ] Ran syntax check: `node --check app.js`
