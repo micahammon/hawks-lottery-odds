@@ -11,25 +11,17 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - name: Debug - list repo root
-        run: |
-          pwd
-          ls -la
-          test -f package-lock.json && echo "FOUND package-lock.json" || (echo "MISSING package-lock.json" && exit 1)
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm install
 
       - name: Run lottery updater
         run: npm run update:lottery
