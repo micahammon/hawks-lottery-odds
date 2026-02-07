@@ -104,7 +104,7 @@ function renderLotteryData(json) {
 
     json.lottery_top14.forEach((team) => {
         const li = document.createElement("li");
-        li.textContent = `${team}`;
+        li.textContent = team;
         refs.top14List.appendChild(li);
     });
 }
