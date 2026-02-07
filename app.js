@@ -93,7 +93,6 @@ const refs = {
     summaryTop4: byId("summary-top4"),
     summaryExpected: byId("summary-expected"),
     summaryWorst: byId("summary-worst"),
-    summarySeed: byId("summary-seed"),
     summarySims: byId("summary-sims"),
     distributionBody: byId("distribution-body"),
     pickChart: byId("pick-chart"),
@@ -525,7 +524,6 @@ function renderResults(result) {
     refs.summaryTop4.textContent = toPercent(result.top4Prob);
     refs.summaryExpected.textContent = result.expectedPick.toFixed(4);
     refs.summaryWorst.textContent = `${result.worstPick}`;
-    refs.summarySeed.textContent = `${result.seedUsed}`;
     refs.summarySims.textContent = result.nSims.toLocaleString();
 
     refs.distributionBody.innerHTML = "";
@@ -721,6 +719,7 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
 
 
 
