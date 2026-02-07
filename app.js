@@ -36,43 +36,69 @@ const TEAM_NAME_VARIANTS = [
     { team: "WAS", names: ["Washington", "Washington Wizards"] },
 ];
 
+function byId(id) {
+    const node = document.getElementById(id);
+    if (node) {
+        return node;
+    }
+    console.warn(`[hawks-odds] Missing DOM element: ${id}`);
+    return {
+        id,
+        hidden: true,
+        disabled: true,
+        value: "",
+        textContent: "",
+        className: "",
+        innerHTML: "",
+        classList: { add() {}, remove() {}, contains() { return false; } },
+        addEventListener() {},
+        focus() {},
+        contains() { return false; },
+        appendChild() {},
+        setAttribute() {},
+        removeAttribute() {},
+        scrollIntoView() {},
+    };
+}
+
 const refs = {
-    statusText: document.getElementById("status-text"),
-    statusSpinner: document.getElementById("status-spinner"),
-    loadError: document.getElementById("load-error"),
-    updatedAt: document.getElementById("updated-at"),
-    sourceLabel: document.getElementById("source-label"),
-    milSlot: document.getElementById("mil-slot"),
-    noSlot: document.getElementById("no-slot"),
-    top14List: document.getElementById("top14-list"),
-    teamCheck: document.getElementById("team-check"),
-    refreshBtn: document.getElementById("refresh-data-btn"),
-    togglePasteBtn: document.getElementById("toggle-paste-btn"),
-    pastePanel: document.getElementById("paste-panel"),
-    pasteTextarea: document.getElementById("paste-textarea"),
-    parseStandingsBtn: document.getElementById("parse-standings-btn"),
-    useStandingsBtn: document.getElementById("use-standings-btn"),
-    clearPasteBtn: document.getElementById("clear-paste-btn"),
-    pasteStatus: document.getElementById("paste-status"),
-    revertOverrideBtn: document.getElementById("revert-override-btn"),
-    simsInput: document.getElementById("sims-input"),
-    simsRecommend: document.getElementById("sims-recommend"),
-    simsWarning: document.getElementById("sims-warning"),
-    useDefaultBtn: document.getElementById("use-default-btn"),
-    toggleAdvancedBtn: document.getElementById("toggle-advanced-btn"),
-    advancedSeedPanel: document.getElementById("advanced-seed-panel"),
-    seedInput: document.getElementById("seed-input"),
-    runBtn: document.getElementById("run-btn"),
-    resultsSection: document.getElementById("results"),
-    summaryTop4: document.getElementById("summary-top4"),
-    summaryExpected: document.getElementById("summary-expected"),
-    summaryWorst: document.getElementById("summary-worst"),
-    summarySeed: document.getElementById("summary-seed"),
-    summarySims: document.getElementById("summary-sims"),
-    distributionBody: document.getElementById("distribution-body"),
-    pickChart: document.getElementById("pick-chart"),
-    chartYLabels: document.getElementById("chart-y-labels"),
-    chartScaleNote: document.getElementById("chart-scale-note"),
+    statusText: byId("status-text"),
+    statusSpinner: byId("status-spinner"),
+    loadError: byId("load-error"),
+    updatedAt: byId("updated-at"),
+    sourceBox: byId("source-box"),
+    sourceLabel: byId("source-label"),
+    milSlot: byId("mil-slot"),
+    noSlot: byId("no-slot"),
+    top14List: byId("top14-list"),
+    teamCheck: byId("team-check"),
+    refreshBtn: byId("refresh-data-btn"),
+    togglePasteBtn: byId("toggle-paste-btn"),
+    pastePanel: byId("paste-panel"),
+    pasteTextarea: byId("paste-textarea"),
+    parseStandingsBtn: byId("parse-standings-btn"),
+    useStandingsBtn: byId("use-standings-btn"),
+    clearPasteBtn: byId("clear-paste-btn"),
+    pasteStatus: byId("paste-status"),
+    revertOverrideBtn: byId("revert-override-btn"),
+    simsInput: byId("sims-input"),
+    simsRecommend: byId("sims-recommend"),
+    simsWarning: byId("sims-warning"),
+    useDefaultBtn: byId("use-default-btn"),
+    toggleAdvancedBtn: byId("toggle-advanced-btn"),
+    advancedSeedPanel: byId("advanced-seed-panel"),
+    seedInput: byId("seed-input"),
+    runBtn: byId("run-btn"),
+    resultsSection: byId("results"),
+    summaryTop4: byId("summary-top4"),
+    summaryExpected: byId("summary-expected"),
+    summaryWorst: byId("summary-worst"),
+    summarySeed: byId("summary-seed"),
+    summarySims: byId("summary-sims"),
+    distributionBody: byId("distribution-body"),
+    pickChart: byId("pick-chart"),
+    chartYLabels: byId("chart-y-labels"),
+    chartScaleNote: byId("chart-scale-note"),
 };
 
 const state = {
@@ -91,7 +117,8 @@ refs.refreshBtn.addEventListener("click", () => loadData(true));
 refs.togglePasteBtn.addEventListener("click", togglePastePanel);
 refs.parseStandingsBtn.addEventListener("click", parseManualStandings);
 refs.useStandingsBtn.addEventListener("click", applyParsedStandings);
-refs.clearPasteBtn.addEventListener("click", clearPastePanel);refs.revertOverrideBtn.addEventListener("click", revertOverride);
+refs.clearPasteBtn.addEventListener("click", clearPastePanel);
+refs.revertOverrideBtn.addEventListener("click", revertOverride);
 refs.runBtn.addEventListener("click", runSimulation);
 refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
 refs.simsInput.addEventListener("input", updateSimsFeedback);
@@ -246,12 +273,15 @@ function refreshSourceState() {
 
     renderTop14(activeTop14);
 
+    refs.sourceBox.classList.remove("source-manual", "source-github");
     if (state.overrideTop14) {
         refs.sourceLabel.textContent = "Manual paste (applied, session-only override)";
         refs.revertOverrideBtn.hidden = false;
+        refs.sourceBox.classList.add("source-manual");
     } else {
         refs.sourceLabel.textContent = "GitHub data";
         refs.revertOverrideBtn.hidden = true;
+        refs.sourceBox.classList.add("source-github");
     }
 
     evaluateTeamPresence(activeTop14 || []);
@@ -308,7 +338,7 @@ function evaluateTeamPresence(top14) {
 function renderTeamCheck(text, style, hidden) {
     refs.teamCheck.hidden = hidden;
     refs.teamCheck.textContent = text;
-    refs.teamCheck.className = "team-check";
+    refs.teamCheck.className = "team-check status-banner";
     if (!hidden && style) {
         refs.teamCheck.classList.add(style);
     }
@@ -676,7 +706,8 @@ function setRunning(running) {
     refs.toggleAdvancedBtn.disabled = running;
     refs.togglePasteBtn.disabled = running;
     refs.parseStandingsBtn.disabled = running;
-    refs.useStandingsBtn.disabled = running || !Array.isArray(state.parsedCandidate);    refs.clearPasteBtn.disabled = running;
+    refs.useStandingsBtn.disabled = running || !Array.isArray(state.parsedCandidate);
+    refs.clearPasteBtn.disabled = running;
     refs.revertOverrideBtn.disabled = running;
 
     if (!running) {
@@ -690,6 +721,10 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
+
+
+
 
 
 

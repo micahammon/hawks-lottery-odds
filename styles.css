@@ -122,6 +122,16 @@ body {
     background: #f9fafb;
 }
 
+
+.source-box.source-github {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.source-box.source-manual {
+    background: #fffaf0;
+    border-color: #facc15;
+}
 .source-line {
     font-size: 0.9rem;
     color: #374151;
@@ -323,6 +333,9 @@ td.num-col { font-family: Consolas, Menlo, Monaco, monospace; text-align: right;
     .bar-chart { height: 280px; min-width: 600px; }
     .bar-label { font-size: 0.72rem; }
 }
+
+
+
 
 
 
