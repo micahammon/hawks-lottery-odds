@@ -1,18 +1,19 @@
 # TASKS
 
 ## current
-- [ ] Await your validation that manual paste ordering no longer drifts from numeric tokens
+- [ ] Await your browser validation of new defaults and paste CTA flow
 
 ## done
+- [x] Set default simulations and recommended default to 500,000
+- [x] Remove Read clipboard button and related JS wiring
+- [x] Make Use standings call-to-action visually stronger after Parse
+- [x] Update manual source label wording after Use standings apply
+- [x] Run syntax check and confirm UI behavior
 - [x] Replace manual paste parser with strict team-name appearance-order parsing
 - [x] Keep validation unchanged (14 teams + MIL + NO)
 - [x] Run syntax check and confirm parser no longer drifts from numeric tokens
-- [x] Add manual Tankathon copy/paste override UI in the data section
-- [x] Implement robust standings parser with validation and sessionStorage override
-- [x] Integrate override as simulation input source with revert-to-GitHub behavior
-- [x] Add source label, MIL/NO slot indicator, and highlight MIL/NO in list
 
 ## notes
-- [ ] Worker simulation logic unchanged; fix is parser-only in `app.js`
-- [ ] New parser uses team name `indexOf` ordering from raw pasted content and ignores numeric tokens/structure
+- [ ] Worker simulation logic unchanged; this pass updated only UI defaults/messaging
+- [ ] `Use standings` now gets highlighted state (`needs-action`) after successful Parse until applied/cleared
 - [ ] Ran syntax check: `node --check app.js`

@@ -136,6 +136,24 @@ button:disabled { background: #bcccdc; cursor: not-allowed; }
 button:hover:not(:disabled) { background: var(--accent-strong); }
 .secondary-btn { background: #334155; }
 .secondary-btn:hover:not(:disabled) { background: #1f2937; }
+.apply-standings-btn {
+    background: #b45309;
+    border: 2px solid #f59e0b;
+}
+
+.apply-standings-btn:hover:not(:disabled) {
+    background: #92400e;
+}
+
+.apply-standings-btn.needs-action:not(:disabled) {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+    animation: pulse-apply 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse-apply {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
 
 .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .controls-col { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #fbfdff; }
@@ -253,3 +271,4 @@ td.num-col { font-family: Consolas, Menlo, Monaco, monospace; text-align: right;
     .bar-chart { height: 280px; min-width: 600px; }
     .bar-label { font-size: 0.72rem; }
 }
+

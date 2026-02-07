@@ -1,5 +1,5 @@
-// 200k balances stable percentages with quick browser runtimes on most devices.
-const DEFAULT_SIMS = 200_000;
+// 500k balances stable percentages with practical browser runtimes on most devices.
+const DEFAULT_SIMS = 500_000;
 const LARGE_RUN_WARNING_THRESHOLD = 1_000_000;
 const OVERRIDE_STORAGE_KEY = "manualTop14Override";
 
@@ -50,9 +50,7 @@ const refs = {
     pastePanel: document.getElementById("paste-panel"),
     pasteTextarea: document.getElementById("paste-textarea"),
     parseStandingsBtn: document.getElementById("parse-standings-btn"),
-    useStandingsBtn: document.getElementById("use-standings-btn"),
-    readClipboardBtn: document.getElementById("read-clipboard-btn"),
-    clearPasteBtn: document.getElementById("clear-paste-btn"),
+    useStandingsBtn: document.getElementById("use-standings-btn"),    clearPasteBtn: document.getElementById("clear-paste-btn"),
     pasteStatus: document.getElementById("paste-status"),
     revertOverrideBtn: document.getElementById("revert-override-btn"),
     simsInput: document.getElementById("sims-input"),
@@ -91,9 +89,7 @@ refs.refreshBtn.addEventListener("click", () => loadData(true));
 refs.togglePasteBtn.addEventListener("click", togglePastePanel);
 refs.parseStandingsBtn.addEventListener("click", parseManualStandings);
 refs.useStandingsBtn.addEventListener("click", applyParsedStandings);
-refs.clearPasteBtn.addEventListener("click", clearPastePanel);
-refs.readClipboardBtn.addEventListener("click", readClipboardIntoTextarea);
-refs.revertOverrideBtn.addEventListener("click", revertOverride);
+refs.clearPasteBtn.addEventListener("click", clearPastePanel);refs.revertOverrideBtn.addEventListener("click", revertOverride);
 refs.runBtn.addEventListener("click", runSimulation);
 refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
 refs.simsInput.addEventListener("input", updateSimsFeedback);
@@ -144,7 +140,7 @@ function updateSimsFeedback() {
     const value = Number.parseInt(refs.simsInput.value, 10);
     if (Number.isInteger(value) && value > LARGE_RUN_WARNING_THRESHOLD) {
         refs.simsWarning.hidden = false;
-        refs.simsWarning.textContent = "Large runs may take longer in-browser. Consider the 200,000 default for faster iteration.";
+        refs.simsWarning.textContent = "Large runs may take longer in-browser. Consider the 500,000 default for faster iteration.";
     } else {
         refs.simsWarning.hidden = true;
         refs.simsWarning.textContent = "";
@@ -249,7 +245,7 @@ function refreshSourceState() {
     renderTop14(activeTop14);
 
     if (state.overrideTop14) {
-        refs.sourceLabel.textContent = "Source: manual paste (not committed)";
+        refs.sourceLabel.textContent = "Source: manual paste (applied, session-only override)";
         refs.revertOverrideBtn.hidden = false;
     } else {
         refs.sourceLabel.textContent = "Source: GitHub data";
@@ -328,23 +324,9 @@ function clearPastePanel() {
     refs.pasteTextarea.value = "";
     state.parsedCandidate = null;
     refs.useStandingsBtn.disabled = true;
+        refs.useStandingsBtn.classList.remove("needs-action");
     setPasteStatus("", "");
     setPastePanelOpen(false);
-}
-
-async function readClipboardIntoTextarea() {
-    if (!navigator.clipboard || !navigator.clipboard.readText) {
-        setPasteStatus("Clipboard read is not available in this browser. Paste manually in the textarea.", "error");
-        return;
-    }
-
-    try {
-        const text = await navigator.clipboard.readText();
-        refs.pasteTextarea.value = text;
-        setPasteStatus("Clipboard text loaded. Click Parse.", "ok");
-    } catch {
-        setPasteStatus("Clipboard permission blocked. Paste manually in the textarea.", "error");
-    }
 }
 
 function parseManualStandings() {
@@ -353,6 +335,7 @@ function parseManualStandings() {
         setPasteStatus("Paste standings text first.", "error");
         state.parsedCandidate = null;
         refs.useStandingsBtn.disabled = true;
+        refs.useStandingsBtn.classList.remove("needs-action");
         return;
     }
 
@@ -361,6 +344,7 @@ function parseManualStandings() {
         setPasteStatus(parsed.error, "error");
         state.parsedCandidate = null;
         refs.useStandingsBtn.disabled = true;
+        refs.useStandingsBtn.classList.remove("needs-action");
         return;
     }
 
@@ -369,12 +353,14 @@ function parseManualStandings() {
         setPasteStatus("Parsed standings must include both MIL and NO for ATL best-of logic.", "error");
         state.parsedCandidate = null;
         refs.useStandingsBtn.disabled = true;
+        refs.useStandingsBtn.classList.remove("needs-action");
         return;
     }
 
     state.parsedCandidate = top14;
     refs.useStandingsBtn.disabled = false;
-    setPasteStatus(`Parsed 14 teams: ${top14.join(", ")}`, "ok");
+    setPasteStatus(`Parsed 14 teams. Click Use standings to apply: ${top14.join(", ")}`, "ok");
+    refs.useStandingsBtn.classList.add("needs-action");
 }
 
 function applyParsedStandings() {
@@ -388,6 +374,7 @@ function applyParsedStandings() {
     refreshSourceState();
     updateRunAvailability();
     setPasteStatus("Manual standings applied for this session.", "ok");
+    refs.useStandingsBtn.classList.remove("needs-action");
 }
 
 function revertOverride() {
@@ -396,6 +383,7 @@ function revertOverride() {
     refreshSourceState();
     updateRunAvailability();
     setPasteStatus("Reverted to GitHub data.", "ok");
+    refs.useStandingsBtn.classList.remove("needs-action");
 }
 
 function setPasteStatus(text, kind) {
@@ -685,9 +673,7 @@ function setRunning(running) {
     refs.toggleAdvancedBtn.disabled = running;
     refs.togglePasteBtn.disabled = running;
     refs.parseStandingsBtn.disabled = running;
-    refs.useStandingsBtn.disabled = running || !Array.isArray(state.parsedCandidate);
-    refs.readClipboardBtn.disabled = running;
-    refs.clearPasteBtn.disabled = running;
+    refs.useStandingsBtn.disabled = running || !Array.isArray(state.parsedCandidate);    refs.clearPasteBtn.disabled = running;
     refs.revertOverrideBtn.disabled = running;
 
     if (!running) {
@@ -701,6 +687,10 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
+
+
+
 
 
 
