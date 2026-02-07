@@ -3,40 +3,38 @@ const DEFAULT_SIMS = 200_000;
 const LARGE_RUN_WARNING_THRESHOLD = 1_000_000;
 const OVERRIDE_STORAGE_KEY = "manualTop14Override";
 
-const TEAM_ALIAS_ENTRIES = [
-    { team: "ATL", aliases: ["ATL", "ATLANTA", "HAWKS"] },
-    { team: "BOS", aliases: ["BOS", "BOSTON", "CELTICS"] },
-    { team: "BKN", aliases: ["BKN", "BROOKLYN", "NETS"] },
-    { team: "CHA", aliases: ["CHA", "CHARLOTTE", "HORNETS"] },
-    { team: "CHI", aliases: ["CHI", "CHICAGO", "BULLS"] },
-    { team: "CLE", aliases: ["CLE", "CLEVELAND", "CAVALIERS"] },
-    { team: "DAL", aliases: ["DAL", "DALLAS", "MAVERICKS"] },
-    { team: "DEN", aliases: ["DEN", "DENVER", "NUGGETS"] },
-    { team: "DET", aliases: ["DET", "DETROIT", "PISTONS"] },
-    { team: "GSW", aliases: ["GSW", "GS", "GOLDEN STATE", "WARRIORS"] },
-    { team: "HOU", aliases: ["HOU", "HOUSTON", "ROCKETS"] },
-    { team: "IND", aliases: ["IND", "INDIANA", "PACERS"] },
-    { team: "LAC", aliases: ["LAC", "CLIPPERS", "LA CLIPPERS", "LOS ANGELES CLIPPERS"] },
-    { team: "LAL", aliases: ["LAL", "LAKERS", "LA LAKERS", "LOS ANGELES LAKERS"] },
-    { team: "MEM", aliases: ["MEM", "MEMPHIS", "GRIZZLIES"] },
-    { team: "MIA", aliases: ["MIA", "MIAMI", "HEAT"] },
-    { team: "MIL", aliases: ["MIL", "MILWAUKEE", "BUCKS"] },
-    { team: "MIN", aliases: ["MIN", "MINNESOTA", "TIMBERWOLVES", "T WOLVES"] },
-    { team: "NO", aliases: ["NO", "NOP", "NEW ORLEANS", "PELICANS"] },
-    { team: "NY", aliases: ["NY", "NYK", "NEW YORK", "KNICKS"] },
-    { team: "OKC", aliases: ["OKC", "OKLAHOMA CITY", "THUNDER"] },
-    { team: "ORL", aliases: ["ORL", "ORLANDO", "MAGIC"] },
-    { team: "PHI", aliases: ["PHI", "PHILADELPHIA", "76ERS", "SIXERS"] },
-    { team: "PHX", aliases: ["PHX", "PHO", "PHOENIX", "SUNS"] },
-    { team: "POR", aliases: ["POR", "PORTLAND", "TRAIL BLAZERS", "BLAZERS"] },
-    { team: "SAC", aliases: ["SAC", "SACRAMENTO", "KINGS"] },
-    { team: "SA", aliases: ["SA", "SAS", "SAN ANTONIO", "SPURS"] },
-    { team: "TOR", aliases: ["TOR", "TORONTO", "RAPTORS"] },
-    { team: "UTA", aliases: ["UTA", "UTAH", "JAZZ"] },
-    { team: "WAS", aliases: ["WAS", "WASHINGTON", "WIZARDS"] },
+const TEAM_NAME_VARIANTS = [
+    { team: "ATL", names: ["Atlanta", "Atlanta Hawks"] },
+    { team: "BOS", names: ["Boston", "Boston Celtics"] },
+    { team: "BKN", names: ["Brooklyn", "Brooklyn Nets"] },
+    { team: "CHA", names: ["Charlotte", "Charlotte Hornets"] },
+    { team: "CHI", names: ["Chicago", "Chicago Bulls"] },
+    { team: "CLE", names: ["Cleveland", "Cleveland Cavaliers"] },
+    { team: "DAL", names: ["Dallas", "Dallas Mavericks"] },
+    { team: "DEN", names: ["Denver", "Denver Nuggets"] },
+    { team: "DET", names: ["Detroit", "Detroit Pistons"] },
+    { team: "GSW", names: ["Golden State", "Golden State Warriors"] },
+    { team: "HOU", names: ["Houston", "Houston Rockets"] },
+    { team: "IND", names: ["Indiana", "Indiana Pacers"] },
+    { team: "LAC", names: ["LA Clippers", "Los Angeles Clippers"] },
+    { team: "LAL", names: ["LA Lakers", "Los Angeles Lakers"] },
+    { team: "MEM", names: ["Memphis", "Memphis Grizzlies"] },
+    { team: "MIA", names: ["Miami", "Miami Heat"] },
+    { team: "MIL", names: ["Milwaukee", "Milwaukee Bucks"] },
+    { team: "MIN", names: ["Minnesota", "Minnesota Timberwolves"] },
+    { team: "NO", names: ["New Orleans", "New Orleans Pelicans"] },
+    { team: "NY", names: ["New York", "New York Knicks"] },
+    { team: "OKC", names: ["Oklahoma City", "Oklahoma City Thunder"] },
+    { team: "ORL", names: ["Orlando", "Orlando Magic"] },
+    { team: "PHI", names: ["Philadelphia", "Philadelphia 76ers", "Philadelphia Sixers"] },
+    { team: "PHX", names: ["Phoenix", "Phoenix Suns"] },
+    { team: "POR", names: ["Portland", "Portland Trail Blazers"] },
+    { team: "SAC", names: ["Sacramento", "Sacramento Kings"] },
+    { team: "SA", names: ["San Antonio", "San Antonio Spurs"] },
+    { team: "TOR", names: ["Toronto", "Toronto Raptors"] },
+    { team: "UTA", names: ["Utah", "Utah Jazz"] },
+    { team: "WAS", names: ["Washington", "Washington Wizards"] },
 ];
-
-const ALIAS_MATCHERS = buildAliasMatchers(TEAM_ALIAS_ENTRIES);
 
 const refs = {
     statusText: document.getElementById("status-text"),
@@ -358,7 +356,7 @@ function parseManualStandings() {
         return;
     }
 
-    const parsed = extractTop14FromPaste(raw);
+    const parsed = parseTop14FromPaste(raw);
     if (!parsed.ok) {
         setPasteStatus(parsed.error, "error");
         state.parsedCandidate = null;
@@ -597,45 +595,27 @@ function scrollResultsIntoView() {
     });
 }
 
-function buildAliasMatchers(entries) {
-    const out = [];
-    for (const entry of entries) {
-        for (const alias of entry.aliases) {
-            const normalized = normalizeForMatching(alias);
-            const escaped = escapeRegex(normalized).replace(/\s+/g, "\\s+");
-            out.push({
-                team: entry.team,
-                regex: new RegExp(`\\b${escaped}\\b`, "g"),
-                len: normalized.length,
-            });
-        }
-    }
-    out.sort((a, b) => b.len - a.len);
-    return out;
-}
-
-function extractTop14FromPaste(rawText) {
+function parseTop14FromPaste(rawText) {
     const text = normalizeForMatching(rawText);
     const matches = [];
 
-    for (const matcher of ALIAS_MATCHERS) {
-        matcher.regex.lastIndex = 0;
-        let found;
-        while ((found = matcher.regex.exec(text)) !== null) {
-            matches.push({ index: found.index, team: matcher.team, len: matcher.len });
+    for (const entry of TEAM_NAME_VARIANTS) {
+        const firstIndex = findTeamNameIndex(text, entry.names);
+        if (firstIndex >= 0) {
+            matches.push({ abbr: entry.team, index: firstIndex });
         }
     }
 
-    matches.sort((a, b) => (a.index - b.index) || (b.len - a.len));
+    matches.sort((a, b) => a.index - b.index);
 
     const top14 = [];
     const seen = new Set();
     for (const match of matches) {
-        if (seen.has(match.team)) {
+        if (seen.has(match.abbr)) {
             continue;
         }
-        seen.add(match.team);
-        top14.push(match.team);
+        seen.add(match.abbr);
+        top14.push(match.abbr);
         if (top14.length === 14) {
             break;
         }
@@ -649,6 +629,17 @@ function extractTop14FromPaste(rawText) {
     }
 
     return { ok: true, top14 };
+}
+
+function findTeamNameIndex(text, names) {
+    let bestIndex = -1;
+    for (const name of names) {
+        const idx = text.indexOf(name.toUpperCase());
+        if (idx >= 0 && (bestIndex === -1 || idx < bestIndex)) {
+            bestIndex = idx;
+        }
+    }
+    return bestIndex;
 }
 
 function normalizeTeamAbbrev(value) {
@@ -669,10 +660,6 @@ function normalizeForMatching(value) {
         .replace(/\s+/g, " ")
         .trim()
         .toUpperCase();
-}
-
-function escapeRegex(value) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function toPercent(value) {
@@ -714,5 +701,8 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
+
+
 
 
