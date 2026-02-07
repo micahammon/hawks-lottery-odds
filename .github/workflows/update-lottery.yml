@@ -15,6 +15,11 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+      - name: Debug - list repo root
+        run: |
+          pwd
+          ls -la
+          test -f package-lock.json && echo "FOUND package-lock.json" || (echo "MISSING package-lock.json" && exit 1)
 
       - name: Setup Node
         uses: actions/setup-node@v4
