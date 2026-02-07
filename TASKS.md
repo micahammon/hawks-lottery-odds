@@ -1,21 +1,20 @@
 # TASKS
 
 ## current
-- [ ] Await user validation in GitHub Pages and Actions UI
+- [ ] Await user validation in GitHub Pages with live data and long simulation run
 
 ## done
-- [x] Verify workflow, pages folder, and JSON fetch path wiring
-- [x] Implement GitHub Pages frontend UI and worker simulation in this folder
-- [x] Mirror `odds_calc.py` logic for ATL better-of MIL/NOP outcomes and metrics
-- [x] Provide workflow verification checklist for Actions run/commit behavior
-- [x] Add interactive CLI prompt to accept new standings paste or reuse prior values
-- [x] Add CLI option to parse pasted standings text and populate teams_in_order
+- [x] Wire ATL-only better-of MIL/NO simulation behavior in `worker.js`
+- [x] Add MIL/NO presence validation and disable simulation when required teams are missing
+- [x] Add running-state UX with spinner/progress and clean worker lifecycle
+- [x] Add best-of disclaimer/diagram and data update note in UI
+- [x] Remove lottery list double-numbering by rendering team names only in `<ol>`
+- [x] Add ATL pick distribution bar chart with no external library
+- [x] Polish responsive card layout, sticky table header, and monospace numeric columns
+- [x] Audit `worker.js` assumptions against `odds_calc.py` and document unavoidable RNG difference
 
 ## notes
-- [ ] Added stdin/arg parsing with alias-based team extraction in odds_calc.py
-- [ ] Added interactive prompt mode for standings paste in odds_calc.py
-- [ ] Prompt terminator is END instead of blank line
-- [ ] Added `index.html`, `styles.css`, `app.js`, and `worker.js` for Pages-hosted ATL-only simulation UI
-- [ ] Worker mirrors Python lottery logic: weighted sample without replacement for top 4, remaining picks by order, ATL=min(MIL,NOP)
-- [ ] JSON fetch path is `./data/lottery.json` with no-cache refresh support and troubleshooting error messaging
+- [ ] Kept GitHub Pages paths as `./data/lottery.json` and `./worker.js`
+- [ ] Progress updates throttled in worker using count/time gates (`25000` steps or ~`200ms` with minimum delta)
+- [ ] Worker still uses standard combo table for slots 1..14 and top-4 weighted draws without replacement
 - [ ] Ran syntax checks: `node --check app.js` and `node --check worker.js`

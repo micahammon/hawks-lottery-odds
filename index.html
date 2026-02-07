@@ -9,11 +9,20 @@
 <body>
 <main class="page">
     <header class="hero">
-        <h1>Atlanta Pick Odds (MIL/NOP Better-Of)</h1>
+        <h1>Atlanta Pick Odds (MIL/NO Better-Of)</h1>
         <p>
-            Monte Carlo only for ATL controlling the more favorable pick between Milwaukee and New Orleans.
+            Monte Carlo tool focused only on ATL receiving the more favorable pick between Milwaukee and New Orleans.
         </p>
     </header>
+
+    <section class="panel logic-panel">
+        <h2>Best-Of Logic</h2>
+        <p class="logic-copy">
+            ATL gets the better outcome from MIL and NO each simulated lottery. Top-4 odds cannot be added directly
+            because both teams can land in overlapping top-4 scenarios.
+        </p>
+        <pre class="logic-diagram">Sim one lottery -> MIL pick = X, NO pick = Y -> ATL pick = min(X, Y)</pre>
+    </section>
 
     <section class="panel">
         <div class="panel-head">
@@ -21,6 +30,8 @@
             <button id="refresh-data-btn" type="button">Refresh data</button>
         </div>
         <p><strong>Last updated (UTC source):</strong> <span id="updated-at">Loading...</span></p>
+        <p class="meta-note">Data updates automatically every 6 hours via GitHub Actions.</p>
+        <p id="team-check" class="team-check" hidden></p>
         <ol id="top14-list" class="top14"></ol>
         <pre id="load-error" class="error" hidden></pre>
     </section>
@@ -34,7 +45,7 @@
             <label for="seed-input">Seed (optional)</label>
             <input id="seed-input" type="number" min="0" max="4294967295" placeholder="random">
         </div>
-        <button id="run-btn" type="button">Run simulation</button>
+        <button id="run-btn" type="button" disabled>Run simulation</button>
     </section>
 
     <section class="panel">
@@ -55,16 +66,20 @@
             <div><strong>Simulations</strong><br><span id="summary-sims"></span></div>
         </div>
 
-        <table>
-            <thead>
-            <tr>
-                <th>ATL Pick</th>
-                <th>Count</th>
-                <th>Probability</th>
-            </tr>
-            </thead>
-            <tbody id="distribution-body"></tbody>
-        </table>
+        <div id="pick-chart" class="bar-chart" aria-label="ATL pick probability chart"></div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ATL Pick</th>
+                    <th class="num-col">Count</th>
+                    <th class="num-col">Probability</th>
+                </tr>
+                </thead>
+                <tbody id="distribution-body"></tbody>
+            </table>
+        </div>
     </section>
 </main>
 <script src="./app.js" defer></script>

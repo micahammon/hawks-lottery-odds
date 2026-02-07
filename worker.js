@@ -1,5 +1,15 @@
+/*
+Parity notes vs `odds_calc.py`:
+- Same combo table, weighted-sampling method, top-4 draw mechanics, and remaining-pick assignment.
+- Same ATL rule: hawks_pick = min(NO pick, MIL pick).
+- Same worst-case definition using standings rank + 4 capped at 14.
+- Unavoidable difference: seeded RNG implementation is deterministic but not CPython's `random.Random`,
+  so identical seed values are reproducible within JS but not expected to match Python draw-for-draw.
+*/
+
 const COMBOS_IN_ORDER = [140, 140, 140, 125, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5];
-const PROGRESS_CHUNK = 20000;
+const PROGRESS_STEP = 25000;
+const PROGRESS_MS = 200;
 
 self.addEventListener("message", (event) => {
     const { type, payload } = event.data || {};
@@ -23,29 +33,32 @@ function runSimulation(payload) {
     const lotteryTop14 = payload?.lotteryTop14;
     const seedInput = payload?.seed;
 
-    if (!Number.isInteger(nSims) || nSims < 1) {
-        throw new Error("Invalid simulation count.");
+    if (!Number.isInteger(nSims) || nSims < 1 || nSims > 2_000_000) {
+        throw new Error("Simulation count must be in [1, 2000000].");
     }
     if (!Array.isArray(lotteryTop14) || lotteryTop14.length !== 14) {
-        throw new Error("Expected 14 lottery teams.");
+        throw new Error("Expected exactly 14 lottery teams.");
     }
 
     const teamNames = lotteryTop14.map((name) => String(name || "").trim());
-    const milIndex = findTeamIndex(teamNames, ["MIL", "Milwaukee", "Milwaukee Bucks"]);
-    const nopIndex = findTeamIndex(teamNames, ["NOP", "NO", "New Orleans", "New Orleans Pelicans"]);
+    const milIndex = findTeamIndex(teamNames, ["MIL", "MILWAUKEE", "MILWAUKEEBUCKS"]);
+    const noIndex = findTeamIndex(teamNames, ["NO", "NOP", "NEWORLEANS", "NEWORLEANSPELICANS"]);
 
-    const seedUsed = seedInput == null ? makeRandomSeed() : (seedInput >>> 0);
+    const seedUsed = seedInput == null ? makeRandomSeed() : seedInput >>> 0;
     const rng = createRng(seedUsed);
 
     const pickCounts = new Array(15).fill(0);
     let top4Count = 0;
     let pickSum = 0;
 
+    let lastProgressTime = nowMs();
+    let lastProgressCount = 0;
+
     for (let i = 0; i < nSims; i += 1) {
         const pickByTeam = simulateNbaLotteryOnce(teamNames, COMBOS_IN_ORDER, rng);
-        const pPick = pickByTeam[nopIndex];
-        const bPick = pickByTeam[milIndex];
-        const hawksPick = Math.min(pPick, bPick);
+        const noPick = pickByTeam[noIndex];
+        const milPick = pickByTeam[milIndex];
+        const hawksPick = Math.min(noPick, milPick);
 
         pickCounts[hawksPick] += 1;
         pickSum += hawksPick;
@@ -53,14 +66,17 @@ function runSimulation(payload) {
             top4Count += 1;
         }
 
-        if ((i + 1) % PROGRESS_CHUNK === 0 || i + 1 === nSims) {
+        const completed = i + 1;
+        if (shouldPostProgress(completed, nSims, lastProgressCount, lastProgressTime)) {
             self.postMessage({
                 type: "progress",
                 payload: {
-                    completed: i + 1,
+                    completed,
                     total: nSims,
                 },
             });
+            lastProgressCount = completed;
+            lastProgressTime = nowMs();
         }
     }
 
@@ -76,8 +92,19 @@ function runSimulation(payload) {
         pickProbs,
         top4Prob: top4Count / nSims,
         expectedPick: pickSum / nSims,
-        worstPick: worstPossiblePickBestOfTwoFromOrder(teamNames, nopIndex, milIndex),
+        worstPick: worstPossiblePickBestOfTwoFromOrder(teamNames, noIndex, milIndex),
     };
+}
+
+function shouldPostProgress(completed, total, lastCount, lastTime) {
+    if (completed === total) {
+        return true;
+    }
+
+    const byCount = completed - lastCount >= PROGRESS_STEP;
+    const byTime = nowMs() - lastTime >= PROGRESS_MS;
+
+    return byCount || (byTime && completed - lastCount >= 5000);
 }
 
 function simulateNbaLotteryOnce(teamsInOrder, combosInOrder, rng) {
@@ -145,7 +172,7 @@ function findTeamIndex(teams, aliases) {
     const aliasSet = new Set(aliases.map((v) => normalize(v)));
     const idx = teams.findIndex((team) => aliasSet.has(normalize(team)));
     if (idx === -1) {
-        throw new Error(`Could not find team in top-14 data for aliases: ${aliases.join(", ")}`);
+        throw new Error(`Missing required team in top-14 data: ${aliases.join("/")}`);
     }
     return idx;
 }
@@ -179,4 +206,11 @@ function makeRandomSeed() {
         return arr[0];
     }
     return (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+}
+
+function nowMs() {
+    if (typeof performance !== "undefined" && typeof performance.now === "function") {
+        return performance.now();
+    }
+    return Date.now();
 }

@@ -1,13 +1,17 @@
 :root {
-    --bg: #f4f5f7;
+    --bg: #eef2f7;
     --panel: #ffffff;
-    --ink: #1f2933;
-    --muted: #52606d;
-    --line: #d9e2ec;
-    --accent: #9f1239;
-    --accent-strong: #881337;
+    --ink: #182330;
+    --muted: #4d5b6b;
+    --line: #cfd8e3;
+    --accent: #0f766e;
+    --accent-strong: #115e59;
     --error-bg: #fff1f2;
     --error-ink: #9f1239;
+    --good-bg: #ecfdf5;
+    --good-ink: #065f46;
+    --warn-bg: #fffbeb;
+    --warn-ink: #92400e;
 }
 
 * {
@@ -16,13 +20,15 @@
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 60%);
+    font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+    background:
+        radial-gradient(circle at 0% 0%, #ffffff 0%, transparent 45%),
+        linear-gradient(165deg, #f8fafc 0%, var(--bg) 50%, #e3ecf7 100%);
     color: var(--ink);
 }
 
 .page {
-    max-width: 900px;
+    max-width: 950px;
     margin: 0 auto;
     padding: 24px 16px 40px;
 }
@@ -42,6 +48,7 @@ body {
     border-radius: 12px;
     padding: 16px;
     margin-top: 16px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
 }
 
 .panel-head {
@@ -51,9 +58,54 @@ body {
     gap: 12px;
 }
 
+.logic-panel {
+    border-left: 5px solid var(--accent);
+}
+
+.logic-copy {
+    margin-bottom: 10px;
+    color: var(--muted);
+}
+
+.logic-diagram {
+    margin: 0;
+    background: #f5f7fa;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: Consolas, Menlo, Monaco, monospace;
+    white-space: pre-wrap;
+}
+
+.meta-note {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.team-check {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    border: 1px solid transparent;
+}
+
+.team-check.ok {
+    background: var(--good-bg);
+    color: var(--good-ink);
+    border-color: #6ee7b7;
+}
+
+.team-check.warn {
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border-color: #fcd34d;
+}
+
 .top14 {
     margin: 12px 0 0;
-    padding-left: 18px;
+    padding-left: 22px;
     columns: 2;
 }
 
@@ -80,7 +132,7 @@ button:hover:not(:disabled) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px 12px;
-    max-width: 480px;
+    max-width: 500px;
     margin-bottom: 12px;
     align-items: center;
 }
@@ -120,6 +172,53 @@ input {
     margin-bottom: 14px;
 }
 
+.bar-chart {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(28px, 1fr));
+    gap: 8px;
+    align-items: end;
+    min-height: 190px;
+    margin: 8px 0 16px;
+    padding: 10px;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+}
+
+.bar-value {
+    font-family: Consolas, Menlo, Monaco, monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+}
+
+.bar-fill {
+    width: 100%;
+    background: linear-gradient(180deg, #2dd4bf 0%, #0f766e 100%);
+    border-radius: 6px 6px 0 0;
+    min-height: 2px;
+}
+
+.bar-label {
+    font-family: Consolas, Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    color: var(--ink);
+}
+
+.table-wrap {
+    max-height: 340px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
 table {
     border-collapse: collapse;
     width: 100%;
@@ -127,13 +226,25 @@ table {
 
 th,
 td {
-    border: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
     text-align: left;
     padding: 8px;
 }
 
 th {
     background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.num-col {
+    text-align: right;
+}
+
+td.num-col {
+    font-family: Consolas, Menlo, Monaco, monospace;
+    text-align: right;
 }
 
 .error {
@@ -149,7 +260,18 @@ th {
     .top14 {
         columns: 1;
     }
+
     .controls {
         grid-template-columns: 1fr;
+    }
+
+    .bar-chart {
+        gap: 5px;
+        min-height: 160px;
+        padding: 8px 6px;
+    }
+
+    .bar-value {
+        font-size: 0.68rem;
     }
 }

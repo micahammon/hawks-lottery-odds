@@ -4,6 +4,7 @@ const refs = {
     loadError: document.getElementById("load-error"),
     updatedAt: document.getElementById("updated-at"),
     top14List: document.getElementById("top14-list"),
+    teamCheck: document.getElementById("team-check"),
     refreshBtn: document.getElementById("refresh-data-btn"),
     simsInput: document.getElementById("sims-input"),
     seedInput: document.getElementById("seed-input"),
@@ -15,12 +16,15 @@ const refs = {
     summarySeed: document.getElementById("summary-seed"),
     summarySims: document.getElementById("summary-sims"),
     distributionBody: document.getElementById("distribution-body"),
+    pickChart: document.getElementById("pick-chart"),
 };
 
 const state = {
     data: null,
     worker: null,
     running: false,
+    teamsReady: false,
+    missingTeams: [],
 };
 
 refs.refreshBtn.addEventListener("click", () => loadData(true));
@@ -46,21 +50,31 @@ async function loadData(noCache) {
         state.data = json;
 
         renderLotteryData(json);
-        setStatus("Data ready.", false);
+        evaluateTeamPresence(json.lottery_top14);
+        if (state.teamsReady) {
+            setStatus("Data ready.", false);
+        } else {
+            setStatus(`Data loaded, but simulation is disabled: ${state.missingTeams.join(", ")} missing.`, false);
+        }
     } catch (error) {
         state.data = null;
+        state.teamsReady = false;
+        state.missingTeams = [];
         renderLotteryData(null);
+        renderTeamCheck("", "warn", true);
         setStatus("Unable to load lottery data.", false);
         setLoadError(
             [
                 `${error.message}`,
                 "Troubleshooting:",
-                "- Confirm GitHub Pages source is branch `main` and folder `mf/hawks_lottery_odds`.",
-                "- Confirm `data/lottery.json` exists in that folder on `main`.",
-                "- Confirm the workflow committed `mf/hawks_lottery_odds/data/lottery.json`.",
+                "- Confirm GitHub Pages is serving this repo root on branch `main`.",
+                "- Confirm `data/lottery.json` exists on `main`.",
+                "- Confirm the workflow committed changes to `data/lottery.json`.",
             ].join("\n"),
         );
     }
+
+    updateRunAvailability();
 }
 
 function validateLotteryData(json) {
@@ -88,11 +102,43 @@ function renderLotteryData(json) {
         ? json.fetched_at_utc
         : timestamp.toLocaleString();
 
-    json.lottery_top14.forEach((team, index) => {
+    json.lottery_top14.forEach((team) => {
         const li = document.createElement("li");
-        li.textContent = `${index + 1}. ${team}`;
+        li.textContent = `${team}`;
         refs.top14List.appendChild(li);
     });
+}
+
+function evaluateTeamPresence(top14) {
+    const missing = [];
+    if (!containsTeam(top14, ["MIL", "MILWAUKEE", "MILWAUKEEBUCKS"])) {
+        missing.push("MIL (Milwaukee)");
+    }
+    if (!containsTeam(top14, ["NO", "NOP", "NEWORLEANS", "NEWORLEANSPELICANS"])) {
+        missing.push("NO/NOP (New Orleans)");
+    }
+
+    state.missingTeams = missing;
+    state.teamsReady = missing.length === 0;
+
+    if (state.teamsReady) {
+        renderTeamCheck("MIL and NO detected in top-14 data. Simulation ready.", "ok", false);
+    } else {
+        renderTeamCheck(
+            `Simulation disabled: missing required team(s): ${missing.join(", ")}.`,
+            "warn",
+            false,
+        );
+    }
+}
+
+function renderTeamCheck(text, style, hidden) {
+    refs.teamCheck.hidden = hidden;
+    refs.teamCheck.textContent = text;
+    refs.teamCheck.className = "team-check";
+    if (!hidden && style) {
+        refs.teamCheck.classList.add(style);
+    }
 }
 
 function runSimulation() {
@@ -102,6 +148,11 @@ function runSimulation() {
 
     if (!state.data) {
         setStatus("Load lottery data before running.", false);
+        return;
+    }
+
+    if (!state.teamsReady) {
+        setStatus(`Missing required team(s): ${state.missingTeams.join(", ")}.`, false);
         return;
     }
 
@@ -143,7 +194,10 @@ function startWorker() {
         const { type, payload } = event.data || {};
 
         if (type === "progress") {
-            setStatus(`Running simulation... ${payload.completed.toLocaleString()} / ${payload.total.toLocaleString()}`, true);
+            setStatus(
+                `Running simulation... ${payload.completed.toLocaleString()} / ${payload.total.toLocaleString()}`,
+                true,
+            );
             return;
         }
 
@@ -158,6 +212,11 @@ function startWorker() {
             setRunning(false);
             setStatus(`Simulation failed: ${payload.message}`, false);
         }
+    });
+
+    state.worker.addEventListener("error", (event) => {
+        setRunning(false);
+        setStatus(`Simulation failed: ${event.message}`, false);
     });
 }
 
@@ -184,9 +243,11 @@ function renderResults(result) {
         pickCell.textContent = `${pick}`;
 
         const countCell = document.createElement("td");
+        countCell.className = "num-col";
         countCell.textContent = `${result.pickCounts[pick] ?? 0}`;
 
         const probCell = document.createElement("td");
+        probCell.className = "num-col";
         probCell.textContent = toPercent(result.pickProbs[pick] ?? 0);
 
         row.appendChild(pickCell);
@@ -194,6 +255,53 @@ function renderResults(result) {
         row.appendChild(probCell);
         refs.distributionBody.appendChild(row);
     }
+
+    renderChart(result.pickProbs);
+}
+
+function renderChart(pickProbs) {
+    refs.pickChart.innerHTML = "";
+    const values = [];
+    for (let pick = 1; pick <= 14; pick += 1) {
+        values.push(pickProbs[pick] ?? 0);
+    }
+    const maxProb = Math.max(...values, 0);
+
+    for (let pick = 1; pick <= 14; pick += 1) {
+        const prob = pickProbs[pick] ?? 0;
+        const heightPct = maxProb > 0 ? (prob / maxProb) * 100 : 0;
+
+        const bar = document.createElement("div");
+        bar.className = "bar";
+
+        const valueLabel = document.createElement("div");
+        valueLabel.className = "bar-value";
+        valueLabel.textContent = toPercent(prob);
+
+        const fill = document.createElement("div");
+        fill.className = "bar-fill";
+        fill.style.height = `${Math.max(heightPct, 1)}%`;
+
+        const pickLabel = document.createElement("div");
+        pickLabel.className = "bar-label";
+        pickLabel.textContent = `${pick}`;
+
+        bar.appendChild(valueLabel);
+        bar.appendChild(fill);
+        bar.appendChild(pickLabel);
+        refs.pickChart.appendChild(bar);
+    }
+}
+
+function containsTeam(teams, aliases) {
+    const aliasSet = new Set(aliases.map((name) => normalize(name)));
+    return teams.some((team) => aliasSet.has(normalize(team)));
+}
+
+function normalize(value) {
+    return String(value || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
 }
 
 function toPercent(value) {
@@ -214,10 +322,15 @@ function setRunning(running) {
     state.running = running;
     refs.simsInput.disabled = running;
     refs.seedInput.disabled = running;
-    refs.runBtn.disabled = running;
     refs.refreshBtn.disabled = running;
 
     if (!running) {
         stopWorker();
     }
+
+    updateRunAvailability();
+}
+
+function updateRunAvailability() {
+    refs.runBtn.disabled = state.running || !state.data || !state.teamsReady;
 }
