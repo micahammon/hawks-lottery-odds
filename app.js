@@ -42,7 +42,8 @@ const refs = {
     loadError: document.getElementById("load-error"),
     updatedAt: document.getElementById("updated-at"),
     sourceLabel: document.getElementById("source-label"),
-    slotIndicator: document.getElementById("slot-indicator"),
+    milSlot: document.getElementById("mil-slot"),
+    noSlot: document.getElementById("no-slot"),
     top14List: document.getElementById("top14-list"),
     teamCheck: document.getElementById("team-check"),
     refreshBtn: document.getElementById("refresh-data-btn"),
@@ -50,7 +51,8 @@ const refs = {
     pastePanel: document.getElementById("paste-panel"),
     pasteTextarea: document.getElementById("paste-textarea"),
     parseStandingsBtn: document.getElementById("parse-standings-btn"),
-    useStandingsBtn: document.getElementById("use-standings-btn"),    clearPasteBtn: document.getElementById("clear-paste-btn"),
+    useStandingsBtn: document.getElementById("use-standings-btn"),
+    clearPasteBtn: document.getElementById("clear-paste-btn"),
     pasteStatus: document.getElementById("paste-status"),
     revertOverrideBtn: document.getElementById("revert-override-btn"),
     simsInput: document.getElementById("sims-input"),
@@ -245,10 +247,10 @@ function refreshSourceState() {
     renderTop14(activeTop14);
 
     if (state.overrideTop14) {
-        refs.sourceLabel.textContent = "Source: manual paste (applied, session-only override)";
+        refs.sourceLabel.textContent = "Manual paste (applied, session-only override)";
         refs.revertOverrideBtn.hidden = false;
     } else {
-        refs.sourceLabel.textContent = "Source: GitHub data";
+        refs.sourceLabel.textContent = "GitHub data";
         refs.revertOverrideBtn.hidden = true;
     }
 
@@ -264,7 +266,8 @@ function renderTop14(top14) {
 
     const milSlot = top14.indexOf("MIL") + 1;
     const noSlot = top14.indexOf("NO") + 1;
-    refs.slotIndicator.textContent = `MIL slot: ${milSlot || "N/A"} | NO slot: ${noSlot || "N/A"}`;
+    refs.milSlot.textContent = `MIL: #${milSlot || "N/A"}`;
+    refs.noSlot.textContent = `NO: #${noSlot || "N/A"}`;
 
     top14.forEach((team) => {
         const li = document.createElement("li");
@@ -687,6 +690,9 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
+
+
 
 
 

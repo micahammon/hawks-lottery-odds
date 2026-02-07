@@ -52,7 +52,15 @@ body {
     white-space: pre-wrap;
 }
 
-.meta-note { margin: 6px 0 0; color: var(--muted); font-size: 0.92rem; }
+.meta-note {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.current-lottery-data > * + * {
+    margin-top: 8px;
+}
 
 .paste-row {
     display: flex;
@@ -106,7 +114,51 @@ body {
 
 .manual-note { margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; }
 
-.source-label, .slot-indicator { margin: 10px 0 0; color: var(--muted); }
+.source-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.source-line {
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.slot-line {
+    display: flex;
+    gap: 12px;
+}
+
+.slot {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.slot.mil {
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.slot.no {
+    background: #ecfeff;
+    color: #155e75;
+}
+
+.status-banner {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #ecfdf5;
+    border: 1px solid #86efac;
+    color: #065f46;
+    font-size: 0.9rem;
+}
 
 .team-check {
     margin: 10px 0 0;
@@ -271,4 +323,6 @@ td.num-col { font-family: Consolas, Menlo, Monaco, monospace; text-align: right;
     .bar-chart { height: 280px; min-width: 600px; }
     .bar-label { font-size: 0.72rem; }
 }
+
+
 
