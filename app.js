@@ -68,6 +68,11 @@ function toggleAdvancedSeed() {
 
 function setAdvancedSeedOpen(open, focusInput) {
     state.advancedSeedOpen = open;
+
+    if (!open && refs.advancedSeedPanel.contains(document.activeElement)) {
+        refs.toggleAdvancedBtn.focus();
+    }
+
     refs.advancedSeedPanel.hidden = !open;
     refs.toggleAdvancedBtn.setAttribute("aria-expanded", String(open));
     refs.toggleAdvancedBtn.textContent = open ? "Hide" : "Show";
@@ -427,3 +432,4 @@ function setRunning(running) {
 function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.data || !state.teamsReady;
 }
+

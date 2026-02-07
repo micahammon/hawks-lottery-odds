@@ -142,7 +142,6 @@ button:hover:not(:disabled) {
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     align-items: start;
-    margin-bottom: 12px;
 }
 
 .controls-col {
@@ -189,6 +188,11 @@ button:hover:not(:disabled) {
     font-size: 0.9rem;
 }
 
+.run-btn {
+    margin-top: 12px;
+    width: 100%;
+}
+
 .advanced-col {
     display: grid;
     gap: 10px;
@@ -209,6 +213,10 @@ button:hover:not(:disabled) {
     display: grid;
     gap: 8px;
     padding-top: 6px;
+}
+
+.advanced-panel[hidden] {
+    display: none !important;
 }
 
 .seed-help-copy {

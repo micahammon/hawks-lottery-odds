@@ -1,9 +1,12 @@
 # TASKS
 
 ## current
-- [ ] Await browser validation of advanced seed disclosure and chart readability improvements
+- [ ] Await your browser validation of seed toggle behavior and run-button alignment
 
 ## done
+- [x] Fix advanced seed section so it is truly collapsed by default and toggles open/closed
+- [x] Align Run simulation directly under the simulations block in the left column
+- [x] Validate JS syntax and confirm updated UI behavior
 - [x] Rework controls into two-column layout with advanced seed disclosure UX
 - [x] Enlarge and rescale chart so bars are visually readable at a glance
 - [x] Improve chart axis/ticks/labels and responsive behavior for small screens
@@ -23,8 +26,8 @@
 - [x] Audit `worker.js` assumptions against `odds_calc.py` and document unavoidable RNG difference
 
 ## notes
-- [ ] Simulation math unchanged; only `index.html`, `styles.css`, and `app.js` updated for this request
-- [ ] Advanced seed uses real button with `aria-expanded` + `aria-controls`; expands/collapses and focuses input on open
-- [ ] Chart now uses scale `maxProb / 0.88` so tallest bar is ~88% of chart height
-- [ ] Chart has explicit y-axis ticks, stronger baseline, top-4 highlighting band, and horizontal scroll support on small screens
+- [ ] Simulation math unchanged; this pass is UI behavior/layout only
+- [ ] Seed panel now respects `hidden` via `.advanced-panel[hidden] { display: none !important; }`
+- [ ] Run button and status moved into the left controls column directly below simulations block
 - [ ] Ran syntax check: `node --check app.js`
+- [ ] Noticed unrelated modified file in worktree: `.github/workflows/update-lottery.yml` (untouched)

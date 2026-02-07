@@ -1,8 +1,9 @@
 name: Update Tankathon lottery order
 
 on:
+  # runs every 3 hours at :17 UTC
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 */3 * * *"
   workflow_dispatch: {}
 
 permissions:
