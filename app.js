@@ -1,3 +1,7 @@
+// 200k balances stable percentages with quick browser runtimes on most devices.
+const DEFAULT_SIMS = 200_000;
+const LARGE_RUN_WARNING_THRESHOLD = 1_000_000;
+
 const refs = {
     statusText: document.getElementById("status-text"),
     statusSpinner: document.getElementById("status-spinner"),
@@ -7,6 +11,9 @@ const refs = {
     teamCheck: document.getElementById("team-check"),
     refreshBtn: document.getElementById("refresh-data-btn"),
     simsInput: document.getElementById("sims-input"),
+    simsRecommend: document.getElementById("sims-recommend"),
+    simsWarning: document.getElementById("sims-warning"),
+    useDefaultBtn: document.getElementById("use-default-btn"),
     seedInput: document.getElementById("seed-input"),
     runBtn: document.getElementById("run-btn"),
     resultsSection: document.getElementById("results"),
@@ -17,6 +24,8 @@ const refs = {
     summarySims: document.getElementById("summary-sims"),
     distributionBody: document.getElementById("distribution-body"),
     pickChart: document.getElementById("pick-chart"),
+    chartYLabels: document.getElementById("chart-y-labels"),
+    chartScaleNote: document.getElementById("chart-scale-note"),
 };
 
 const state = {
@@ -25,12 +34,39 @@ const state = {
     running: false,
     teamsReady: false,
     missingTeams: [],
+    shouldScrollAfterRun: false,
 };
 
 refs.refreshBtn.addEventListener("click", () => loadData(true));
 refs.runBtn.addEventListener("click", runSimulation);
+refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
+refs.simsInput.addEventListener("input", updateSimsFeedback);
 
+initControls();
 loadData(false);
+
+function initControls() {
+    refs.simsInput.value = String(DEFAULT_SIMS);
+    refs.simsRecommend.textContent = `Recommended default: ${DEFAULT_SIMS.toLocaleString()}`;
+    updateSimsFeedback();
+}
+
+function applyRecommendedDefault() {
+    refs.simsInput.value = String(DEFAULT_SIMS);
+    updateSimsFeedback();
+    refs.simsInput.focus();
+}
+
+function updateSimsFeedback() {
+    const value = Number.parseInt(refs.simsInput.value, 10);
+    if (Number.isInteger(value) && value > LARGE_RUN_WARNING_THRESHOLD) {
+        refs.simsWarning.hidden = false;
+        refs.simsWarning.textContent = "Large runs may take longer in-browser. Consider the 200,000 default for faster iteration.";
+    } else {
+        refs.simsWarning.hidden = true;
+        refs.simsWarning.textContent = "";
+    }
+}
 
 async function loadData(noCache) {
     setLoadError("");
@@ -172,6 +208,7 @@ function runSimulation() {
         }
     }
 
+    state.shouldScrollAfterRun = refs.resultsSection.hidden;
     startWorker();
     setRunning(true);
     setStatus("Running simulation...", true);
@@ -202,9 +239,13 @@ function startWorker() {
         }
 
         if (type === "result") {
+            const shouldScroll = state.shouldScrollAfterRun;
             setRunning(false);
             setStatus("Simulation complete.", false);
             renderResults(payload);
+            if (shouldScroll) {
+                scrollResultsIntoView();
+            }
             return;
         }
 
@@ -261,26 +302,32 @@ function renderResults(result) {
 
 function renderChart(pickProbs) {
     refs.pickChart.innerHTML = "";
+
     const values = [];
     for (let pick = 1; pick <= 14; pick += 1) {
         values.push(pickProbs[pick] ?? 0);
     }
+
     const maxProb = Math.max(...values, 0);
+    const paddedMax = Math.max(maxProb * 1.12, 0.05);
+    refs.chartScaleNote.textContent = `Chart scale: 0% to ${(paddedMax * 100).toFixed(2)}% (top-4 picks highlighted).`;
+
+    renderChartYLabels(paddedMax);
 
     for (let pick = 1; pick <= 14; pick += 1) {
         const prob = pickProbs[pick] ?? 0;
-        const heightPct = maxProb > 0 ? (prob / maxProb) * 100 : 0;
+        const heightPct = paddedMax > 0 ? (prob / paddedMax) * 100 : 0;
 
         const bar = document.createElement("div");
-        bar.className = "bar";
+        bar.className = pick <= 4 ? "bar top4" : "bar";
 
         const valueLabel = document.createElement("div");
         valueLabel.className = "bar-value";
-        valueLabel.textContent = toPercent(prob);
+        valueLabel.textContent = prob >= 0.01 ? toPercent(prob) : "";
 
         const fill = document.createElement("div");
         fill.className = "bar-fill";
-        fill.style.height = `${Math.max(heightPct, 1)}%`;
+        fill.style.height = `${Math.max(heightPct, 0)}%`;
 
         const pickLabel = document.createElement("div");
         pickLabel.className = "bar-label";
@@ -291,6 +338,24 @@ function renderChart(pickProbs) {
         bar.appendChild(pickLabel);
         refs.pickChart.appendChild(bar);
     }
+}
+
+function renderChartYLabels(maxValue) {
+    refs.chartYLabels.innerHTML = "";
+    for (let i = 4; i >= 0; i -= 1) {
+        const tick = document.createElement("div");
+        const ratio = i / 4;
+        tick.textContent = `${(maxValue * ratio * 100).toFixed(1)}%`;
+        refs.chartYLabels.appendChild(tick);
+    }
+}
+
+function scrollResultsIntoView() {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    refs.resultsSection.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+    });
 }
 
 function containsTeam(teams, aliases) {
@@ -323,6 +388,7 @@ function setRunning(running) {
     refs.simsInput.disabled = running;
     refs.seedInput.disabled = running;
     refs.refreshBtn.disabled = running;
+    refs.useDefaultBtn.disabled = running;
 
     if (!running) {
         stopWorker();
@@ -334,3 +400,5 @@ function setRunning(running) {
 function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.data || !state.teamsReady;
 }
+
+

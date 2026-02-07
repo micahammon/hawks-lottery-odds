@@ -1,9 +1,14 @@
 # TASKS
 
 ## current
-- [ ] Await user validation in GitHub Pages with live data and long simulation run
+- [ ] Await user validation in-browser for controls UX and chart readability
 
 ## done
+- [x] Improve Simulation Controls UX with recommended default and seed help
+- [x] Add post-success auto-scroll to results with reduced-motion handling
+- [x] Improve bar chart readability with y-scale labels, top-4 highlighting, and mobile chart scrolling
+- [x] Polish controls/status layout and keep keyboard accessibility clean
+- [x] Run quick checks and provide validation checklist
 - [x] Wire ATL-only better-of MIL/NO simulation behavior in `worker.js`
 - [x] Add MIL/NO presence validation and disable simulation when required teams are missing
 - [x] Add running-state UX with spinner/progress and clean worker lifecycle
@@ -15,6 +20,8 @@
 
 ## notes
 - [ ] Kept GitHub Pages paths as `./data/lottery.json` and `./worker.js`
-- [ ] Progress updates throttled in worker using count/time gates (`25000` steps or ~`200ms` with minimum delta)
-- [ ] Worker still uses standard combo table for slots 1..14 and top-4 weighted draws without replacement
-- [ ] Ran syntax checks: `node --check app.js` and `node --check worker.js`
+- [ ] Recommended default is `200000`; warning shown for runs above `1000000`
+- [ ] Seed help uses accessible `<details>` so it works on click/tap (mobile) and desktop
+- [ ] Auto-scroll triggers only after successful run and only when results were previously hidden
+- [ ] Chart now uses padded max scale, y-axis labels, optional value labels (>1%), and top-4 visual highlighting
+- [ ] Ran syntax check: `node --check app.js`
