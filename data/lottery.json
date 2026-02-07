@@ -1,20 +1,20 @@
 {
-  "source": "placeholder",
-  "fetched_at_utc": "2026-02-07T00:00:00Z",
+  "source": "https://tankathon.com/",
+  "fetched_at_utc": "2026-02-07T09:47:14.995Z",
   "lottery_top14": [
     "SAC",
     "IND",
-    "WAS",
+    "NO",
     "BKN",
-    "NOP",
+    "WAS",
     "UTA",
+    "DAL",
     "MEM",
     "MIL",
-    "DAL",
+    "CHI",
+    "POR",
     "CHA",
     "LAC",
-    "POR",
-    "CHI",
     "ATL"
   ]
 }
