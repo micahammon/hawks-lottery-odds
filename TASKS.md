@@ -1,17 +1,16 @@
 # TASKS
 
 ## current
-- [ ] Await your browser validation that load/apply regression is resolved
+- [ ] Await your validation with abbreviation-only pasted standings input
 
 ## done
-- [x] DOM ID reconciliation pass between `index.html` and `app.js`
-- [x] Fix null `textContent` crash path by introducing safe `byId(...)` guard + warning fallback
-- [x] Restore canonical active standings flow so Use standings updates active data and validation state
-- [x] Preserve and display source + MIL/NO slots from active standings
-- [x] Add subtle source-box two-state styling (GitHub vs manual override)
-- [x] De-emphasize metadata line + source/status presentation polish
+- [x] Extend manual parser to accept abbreviation-only paste lists (e.g., SAC/IND/NO...)
+- [x] Keep existing team-name-order parser as fallback for messy Tankathon text
+- [x] Run syntax check and confirm no regression in validation flow
+- [x] Remove Seed Used from results summary
+- [x] DOM ID reconciliation pass and load/apply regression fix
 
 ## notes
-- [ ] Worker simulation logic unchanged
+- [ ] Worker logic unchanged; parser enhancement only in `app.js`
+- [ ] Parser now tries abbrev-token mode first, then falls back to full-name order parsing
 - [ ] Syntax check passed: `node --check app.js`
-- [ ] `source-box` now toggles classes: `source-github` / `source-manual`

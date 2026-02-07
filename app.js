@@ -616,8 +616,13 @@ function scrollResultsIntoView() {
 
 function parseTop14FromPaste(rawText) {
     const text = normalizeForMatching(rawText);
-    const matches = [];
 
+    const abbrevFirstPass = extractTop14FromAbbrevTokens(text);
+    if (abbrevFirstPass.length === 14) {
+        return { ok: true, top14: abbrevFirstPass };
+    }
+
+    const matches = [];
     for (const entry of TEAM_NAME_VARIANTS) {
         const firstIndex = findTeamNameIndex(text, entry.names);
         if (firstIndex >= 0) {
@@ -650,6 +655,34 @@ function parseTop14FromPaste(rawText) {
     return { ok: true, top14 };
 }
 
+function extractTop14FromAbbrevTokens(text) {
+    const validAbbrevs = new Set([
+        "ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW",
+        "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NO", "NY",
+        "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SA", "TOR", "UTA", "WAS",
+    ]);
+
+    const rawTokens = text.split(/[^A-Z0-9]+/g).filter(Boolean);
+    const top14 = [];
+    const seen = new Set();
+
+    for (const token of rawTokens) {
+        const normalized = normalizeTeamAbbrev(token);
+        if (!validAbbrevs.has(normalized)) {
+            continue;
+        }
+        if (seen.has(normalized)) {
+            continue;
+        }
+        seen.add(normalized);
+        top14.push(normalized);
+        if (top14.length === 14) {
+            break;
+        }
+    }
+
+    return top14;
+}
 function findTeamNameIndex(text, names) {
     let bestIndex = -1;
     for (const name of names) {
@@ -719,6 +752,7 @@ function updateRunAvailability() {
     refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
     refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
 
 
 
