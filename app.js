@@ -1,15 +1,62 @@
 // 200k balances stable percentages with quick browser runtimes on most devices.
 const DEFAULT_SIMS = 200_000;
 const LARGE_RUN_WARNING_THRESHOLD = 1_000_000;
+const OVERRIDE_STORAGE_KEY = "manualTop14Override";
+
+const TEAM_ALIAS_ENTRIES = [
+    { team: "ATL", aliases: ["ATL", "ATLANTA", "HAWKS"] },
+    { team: "BOS", aliases: ["BOS", "BOSTON", "CELTICS"] },
+    { team: "BKN", aliases: ["BKN", "BROOKLYN", "NETS"] },
+    { team: "CHA", aliases: ["CHA", "CHARLOTTE", "HORNETS"] },
+    { team: "CHI", aliases: ["CHI", "CHICAGO", "BULLS"] },
+    { team: "CLE", aliases: ["CLE", "CLEVELAND", "CAVALIERS"] },
+    { team: "DAL", aliases: ["DAL", "DALLAS", "MAVERICKS"] },
+    { team: "DEN", aliases: ["DEN", "DENVER", "NUGGETS"] },
+    { team: "DET", aliases: ["DET", "DETROIT", "PISTONS"] },
+    { team: "GSW", aliases: ["GSW", "GS", "GOLDEN STATE", "WARRIORS"] },
+    { team: "HOU", aliases: ["HOU", "HOUSTON", "ROCKETS"] },
+    { team: "IND", aliases: ["IND", "INDIANA", "PACERS"] },
+    { team: "LAC", aliases: ["LAC", "CLIPPERS", "LA CLIPPERS", "LOS ANGELES CLIPPERS"] },
+    { team: "LAL", aliases: ["LAL", "LAKERS", "LA LAKERS", "LOS ANGELES LAKERS"] },
+    { team: "MEM", aliases: ["MEM", "MEMPHIS", "GRIZZLIES"] },
+    { team: "MIA", aliases: ["MIA", "MIAMI", "HEAT"] },
+    { team: "MIL", aliases: ["MIL", "MILWAUKEE", "BUCKS"] },
+    { team: "MIN", aliases: ["MIN", "MINNESOTA", "TIMBERWOLVES", "T WOLVES"] },
+    { team: "NO", aliases: ["NO", "NOP", "NEW ORLEANS", "PELICANS"] },
+    { team: "NY", aliases: ["NY", "NYK", "NEW YORK", "KNICKS"] },
+    { team: "OKC", aliases: ["OKC", "OKLAHOMA CITY", "THUNDER"] },
+    { team: "ORL", aliases: ["ORL", "ORLANDO", "MAGIC"] },
+    { team: "PHI", aliases: ["PHI", "PHILADELPHIA", "76ERS", "SIXERS"] },
+    { team: "PHX", aliases: ["PHX", "PHO", "PHOENIX", "SUNS"] },
+    { team: "POR", aliases: ["POR", "PORTLAND", "TRAIL BLAZERS", "BLAZERS"] },
+    { team: "SAC", aliases: ["SAC", "SACRAMENTO", "KINGS"] },
+    { team: "SA", aliases: ["SA", "SAS", "SAN ANTONIO", "SPURS"] },
+    { team: "TOR", aliases: ["TOR", "TORONTO", "RAPTORS"] },
+    { team: "UTA", aliases: ["UTA", "UTAH", "JAZZ"] },
+    { team: "WAS", aliases: ["WAS", "WASHINGTON", "WIZARDS"] },
+];
+
+const ALIAS_MATCHERS = buildAliasMatchers(TEAM_ALIAS_ENTRIES);
 
 const refs = {
     statusText: document.getElementById("status-text"),
     statusSpinner: document.getElementById("status-spinner"),
     loadError: document.getElementById("load-error"),
     updatedAt: document.getElementById("updated-at"),
+    sourceLabel: document.getElementById("source-label"),
+    slotIndicator: document.getElementById("slot-indicator"),
     top14List: document.getElementById("top14-list"),
     teamCheck: document.getElementById("team-check"),
     refreshBtn: document.getElementById("refresh-data-btn"),
+    togglePasteBtn: document.getElementById("toggle-paste-btn"),
+    pastePanel: document.getElementById("paste-panel"),
+    pasteTextarea: document.getElementById("paste-textarea"),
+    parseStandingsBtn: document.getElementById("parse-standings-btn"),
+    useStandingsBtn: document.getElementById("use-standings-btn"),
+    readClipboardBtn: document.getElementById("read-clipboard-btn"),
+    clearPasteBtn: document.getElementById("clear-paste-btn"),
+    pasteStatus: document.getElementById("paste-status"),
+    revertOverrideBtn: document.getElementById("revert-override-btn"),
     simsInput: document.getElementById("sims-input"),
     simsRecommend: document.getElementById("sims-recommend"),
     simsWarning: document.getElementById("sims-warning"),
@@ -31,7 +78,9 @@ const refs = {
 };
 
 const state = {
-    data: null,
+    githubData: null,
+    overrideTop14: null,
+    parsedCandidate: null,
     worker: null,
     running: false,
     teamsReady: false,
@@ -41,6 +90,12 @@ const state = {
 };
 
 refs.refreshBtn.addEventListener("click", () => loadData(true));
+refs.togglePasteBtn.addEventListener("click", togglePastePanel);
+refs.parseStandingsBtn.addEventListener("click", parseManualStandings);
+refs.useStandingsBtn.addEventListener("click", applyParsedStandings);
+refs.clearPasteBtn.addEventListener("click", clearPastePanel);
+refs.readClipboardBtn.addEventListener("click", readClipboardIntoTextarea);
+refs.revertOverrideBtn.addEventListener("click", revertOverride);
 refs.runBtn.addEventListener("click", runSimulation);
 refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
 refs.simsInput.addEventListener("input", updateSimsFeedback);
@@ -53,7 +108,15 @@ function initControls() {
     refs.simsInput.value = String(DEFAULT_SIMS);
     refs.simsRecommend.textContent = `Recommended default: ${DEFAULT_SIMS.toLocaleString()}`;
     setAdvancedSeedOpen(false, false);
+    setPastePanelOpen(false);
     updateSimsFeedback();
+}
+
+function getActiveTop14() {
+    if (Array.isArray(state.overrideTop14) && state.overrideTop14.length === 14) {
+        return state.overrideTop14;
+    }
+    return state.githubData?.lottery_top14 ?? null;
 }
 
 function applyRecommendedDefault() {
@@ -68,15 +131,12 @@ function toggleAdvancedSeed() {
 
 function setAdvancedSeedOpen(open, focusInput) {
     state.advancedSeedOpen = open;
-
     if (!open && refs.advancedSeedPanel.contains(document.activeElement)) {
         refs.toggleAdvancedBtn.focus();
     }
-
     refs.advancedSeedPanel.hidden = !open;
     refs.toggleAdvancedBtn.setAttribute("aria-expanded", String(open));
     refs.toggleAdvancedBtn.textContent = open ? "Hide" : "Show";
-
     if (open && focusInput) {
         refs.seedInput.focus();
     }
@@ -108,21 +168,15 @@ async function loadData(noCache) {
 
         const json = await response.json();
         validateLotteryData(json);
-        state.data = json;
+        state.githubData = json;
 
-        renderLotteryData(json);
-        evaluateTeamPresence(json.lottery_top14);
-        if (state.teamsReady) {
-            setStatus("Data ready.", false);
-        } else {
-            setStatus(`Data loaded, but simulation is disabled: ${state.missingTeams.join(", ")} missing.`, false);
-        }
+        restoreOverrideFromSession();
+        refreshSourceState();
+        setStatus("Data ready.", false);
     } catch (error) {
-        state.data = null;
-        state.teamsReady = false;
-        state.missingTeams = [];
-        renderLotteryData(null);
-        renderTeamCheck("", "warn", true);
+        state.githubData = null;
+        state.overrideTop14 = null;
+        refreshSourceState();
         setStatus("Unable to load lottery data.", false);
         setLoadError(
             [
@@ -150,43 +204,104 @@ function validateLotteryData(json) {
     }
 }
 
-function renderLotteryData(json) {
+function restoreOverrideFromSession() {
+    try {
+        const raw = sessionStorage.getItem(OVERRIDE_STORAGE_KEY);
+        if (!raw) {
+            state.overrideTop14 = null;
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length !== 14) {
+            state.overrideTop14 = null;
+            return;
+        }
+        const normalized = parsed.map((value) => normalizeTeamAbbrev(String(value)));
+        const unique = new Set(normalized);
+        if (unique.size !== 14) {
+            state.overrideTop14 = null;
+            return;
+        }
+        state.overrideTop14 = normalized;
+    } catch {
+        state.overrideTop14 = null;
+    }
+}
+
+function persistOverride(top14) {
+    sessionStorage.setItem(OVERRIDE_STORAGE_KEY, JSON.stringify(top14));
+}
+
+function clearOverrideStorage() {
+    sessionStorage.removeItem(OVERRIDE_STORAGE_KEY);
+}
+
+function refreshSourceState() {
+    const activeTop14 = getActiveTop14();
+
+    if (state.githubData?.fetched_at_utc) {
+        const timestamp = new Date(state.githubData.fetched_at_utc);
+        refs.updatedAt.textContent = Number.isNaN(timestamp.getTime())
+            ? state.githubData.fetched_at_utc
+            : timestamp.toLocaleString();
+    } else {
+        refs.updatedAt.textContent = "Not available";
+    }
+
+    renderTop14(activeTop14);
+
+    if (state.overrideTop14) {
+        refs.sourceLabel.textContent = "Source: manual paste (not committed)";
+        refs.revertOverrideBtn.hidden = false;
+    } else {
+        refs.sourceLabel.textContent = "Source: GitHub data";
+        refs.revertOverrideBtn.hidden = true;
+    }
+
+    evaluateTeamPresence(activeTop14 || []);
+}
+
+function renderTop14(top14) {
     refs.top14List.innerHTML = "";
 
-    if (!json) {
-        refs.updatedAt.textContent = "Not available";
+    if (!Array.isArray(top14)) {
         return;
     }
 
-    const timestamp = new Date(json.fetched_at_utc);
-    refs.updatedAt.textContent = Number.isNaN(timestamp.getTime())
-        ? json.fetched_at_utc
-        : timestamp.toLocaleString();
+    const milSlot = top14.indexOf("MIL") + 1;
+    const noSlot = top14.indexOf("NO") + 1;
+    refs.slotIndicator.textContent = `MIL slot: ${milSlot || "N/A"} | NO slot: ${noSlot || "N/A"}`;
 
-    json.lottery_top14.forEach((team) => {
+    top14.forEach((team) => {
         const li = document.createElement("li");
         li.textContent = team;
+        if (team === "MIL" || team === "NO") {
+            li.classList.add("mil-no");
+        }
         refs.top14List.appendChild(li);
     });
 }
 
 function evaluateTeamPresence(top14) {
     const missing = [];
-    if (!containsTeam(top14, ["MIL", "MILWAUKEE", "MILWAUKEEBUCKS"])) {
+    if (!Array.isArray(top14) || top14.length !== 14) {
+        missing.push("14 teams");
+    }
+    if (!top14.includes("MIL")) {
         missing.push("MIL (Milwaukee)");
     }
-    if (!containsTeam(top14, ["NO", "NOP", "NEWORLEANS", "NEWORLEANSPELICANS"])) {
-        missing.push("NO/NOP (New Orleans)");
+    if (!top14.includes("NO")) {
+        missing.push("NO (New Orleans)");
     }
 
     state.missingTeams = missing;
     state.teamsReady = missing.length === 0;
 
     if (state.teamsReady) {
-        renderTeamCheck("MIL and NO detected in top-14 data. Simulation ready.", "ok", false);
+        renderTeamCheck("MIL and NO detected in active standings. Simulation ready.", "ok", false);
     } else {
         renderTeamCheck(
-            `Simulation disabled: missing required team(s): ${missing.join(", ")}.`,
+            `Simulation disabled: missing required value(s): ${missing.join(", ")}.`,
             "warn",
             false,
         );
@@ -202,18 +317,111 @@ function renderTeamCheck(text, style, hidden) {
     }
 }
 
+function togglePastePanel() {
+    setPastePanelOpen(refs.pastePanel.hidden);
+}
+
+function setPastePanelOpen(open) {
+    refs.pastePanel.hidden = !open;
+    refs.togglePasteBtn.textContent = open ? "Hide paste" : "Paste standings";
+}
+
+function clearPastePanel() {
+    refs.pasteTextarea.value = "";
+    state.parsedCandidate = null;
+    refs.useStandingsBtn.disabled = true;
+    setPasteStatus("", "");
+    setPastePanelOpen(false);
+}
+
+async function readClipboardIntoTextarea() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+        setPasteStatus("Clipboard read is not available in this browser. Paste manually in the textarea.", "error");
+        return;
+    }
+
+    try {
+        const text = await navigator.clipboard.readText();
+        refs.pasteTextarea.value = text;
+        setPasteStatus("Clipboard text loaded. Click Parse.", "ok");
+    } catch {
+        setPasteStatus("Clipboard permission blocked. Paste manually in the textarea.", "error");
+    }
+}
+
+function parseManualStandings() {
+    const raw = refs.pasteTextarea.value;
+    if (!raw.trim()) {
+        setPasteStatus("Paste standings text first.", "error");
+        state.parsedCandidate = null;
+        refs.useStandingsBtn.disabled = true;
+        return;
+    }
+
+    const parsed = extractTop14FromPaste(raw);
+    if (!parsed.ok) {
+        setPasteStatus(parsed.error, "error");
+        state.parsedCandidate = null;
+        refs.useStandingsBtn.disabled = true;
+        return;
+    }
+
+    const top14 = parsed.top14;
+    if (!top14.includes("MIL") || !top14.includes("NO")) {
+        setPasteStatus("Parsed standings must include both MIL and NO for ATL best-of logic.", "error");
+        state.parsedCandidate = null;
+        refs.useStandingsBtn.disabled = true;
+        return;
+    }
+
+    state.parsedCandidate = top14;
+    refs.useStandingsBtn.disabled = false;
+    setPasteStatus(`Parsed 14 teams: ${top14.join(", ")}`, "ok");
+}
+
+function applyParsedStandings() {
+    if (!Array.isArray(state.parsedCandidate) || state.parsedCandidate.length !== 14) {
+        setPasteStatus("Parse valid standings before applying.", "error");
+        return;
+    }
+
+    state.overrideTop14 = [...state.parsedCandidate];
+    persistOverride(state.overrideTop14);
+    refreshSourceState();
+    updateRunAvailability();
+    setPasteStatus("Manual standings applied for this session.", "ok");
+}
+
+function revertOverride() {
+    state.overrideTop14 = null;
+    clearOverrideStorage();
+    refreshSourceState();
+    updateRunAvailability();
+    setPasteStatus("Reverted to GitHub data.", "ok");
+}
+
+function setPasteStatus(text, kind) {
+    refs.pasteStatus.hidden = !text;
+    refs.pasteStatus.textContent = text;
+    refs.pasteStatus.className = "paste-status";
+    if (kind) {
+        refs.pasteStatus.classList.add(kind);
+    }
+}
+
 function runSimulation() {
     if (state.running) {
         return;
     }
 
-    if (!state.data) {
-        setStatus("Load lottery data before running.", false);
+    const activeTop14 = getActiveTop14();
+    if (!Array.isArray(activeTop14) || activeTop14.length !== 14) {
+        setStatus("Load or apply standings before running.", false);
         return;
     }
 
     if (!state.teamsReady) {
-        setStatus(`Missing required team(s): ${state.missingTeams.join(", ")}.`, false);
+        setStatus(`Missing required value(s): ${state.missingTeams.join(", ")}.`, false);
         return;
     }
 
@@ -243,7 +451,7 @@ function runSimulation() {
         payload: {
             nSims,
             seed,
-            lotteryTop14: state.data.lottery_top14,
+            lotteryTop14: activeTop14,
         },
     });
 }
@@ -389,15 +597,82 @@ function scrollResultsIntoView() {
     });
 }
 
-function containsTeam(teams, aliases) {
-    const aliasSet = new Set(aliases.map((name) => normalize(name)));
-    return teams.some((team) => aliasSet.has(normalize(team)));
+function buildAliasMatchers(entries) {
+    const out = [];
+    for (const entry of entries) {
+        for (const alias of entry.aliases) {
+            const normalized = normalizeForMatching(alias);
+            const escaped = escapeRegex(normalized).replace(/\s+/g, "\\s+");
+            out.push({
+                team: entry.team,
+                regex: new RegExp(`\\b${escaped}\\b`, "g"),
+                len: normalized.length,
+            });
+        }
+    }
+    out.sort((a, b) => b.len - a.len);
+    return out;
 }
 
-function normalize(value) {
+function extractTop14FromPaste(rawText) {
+    const text = normalizeForMatching(rawText);
+    const matches = [];
+
+    for (const matcher of ALIAS_MATCHERS) {
+        matcher.regex.lastIndex = 0;
+        let found;
+        while ((found = matcher.regex.exec(text)) !== null) {
+            matches.push({ index: found.index, team: matcher.team, len: matcher.len });
+        }
+    }
+
+    matches.sort((a, b) => (a.index - b.index) || (b.len - a.len));
+
+    const top14 = [];
+    const seen = new Set();
+    for (const match of matches) {
+        if (seen.has(match.team)) {
+            continue;
+        }
+        seen.add(match.team);
+        top14.push(match.team);
+        if (top14.length === 14) {
+            break;
+        }
+    }
+
+    if (top14.length !== 14) {
+        return {
+            ok: false,
+            error: `Could not parse 14 unique teams from paste. Parsed ${top14.length}: ${top14.join(", ")}`,
+        };
+    }
+
+    return { ok: true, top14 };
+}
+
+function normalizeTeamAbbrev(value) {
+    const up = String(value || "").toUpperCase();
+    if (up === "NOP") {
+        return "NO";
+    }
+    if (up === "GS") {
+        return "GSW";
+    }
+    return up;
+}
+
+function normalizeForMatching(value) {
     return String(value || "")
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, "");
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function toPercent(value) {
@@ -421,6 +696,12 @@ function setRunning(running) {
     refs.refreshBtn.disabled = running;
     refs.useDefaultBtn.disabled = running;
     refs.toggleAdvancedBtn.disabled = running;
+    refs.togglePasteBtn.disabled = running;
+    refs.parseStandingsBtn.disabled = running;
+    refs.useStandingsBtn.disabled = running || !Array.isArray(state.parsedCandidate);
+    refs.readClipboardBtn.disabled = running;
+    refs.clearPasteBtn.disabled = running;
+    refs.revertOverrideBtn.disabled = running;
 
     if (!running) {
         stopWorker();
@@ -430,6 +711,8 @@ function setRunning(running) {
 }
 
 function updateRunAvailability() {
-    refs.runBtn.disabled = state.running || !state.data || !state.teamsReady;
+    refs.runBtn.disabled = state.running || !state.teamsReady || !Array.isArray(getActiveTop14());
+    refs.useStandingsBtn.disabled = state.running || !Array.isArray(state.parsedCandidate);
 }
+
 

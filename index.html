@@ -1,123 +1,149 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hawks Lottery Odds</title>
     <link rel="stylesheet" href="./styles.css">
-    <link rel="icon" type="image/png" href="./favicon.png">
 </head>
-
 <body>
-    <main class="page">
-        <header class="hero">
-            <h1>Atlanta Pick Odds (MIL/NO Better-Of)</h1>
-            <p>
-                Monte Carlo tool focused only on ATL receiving the more favorable pick between Milwaukee and New
-                Orleans.
+<main class="page">
+    <header class="hero">
+        <h1>Atlanta Pick Odds (MIL/NO Better-Of)</h1>
+        <p>
+            Monte Carlo tool focused only on ATL receiving the more favorable pick between Milwaukee and New Orleans.
+        </p>
+    </header>
+
+    <section class="panel logic-panel">
+        <h2>Best-Of Logic</h2>
+        <p class="logic-copy">
+            ATL gets the better outcome from MIL and NO each simulated lottery. Top-4 odds cannot be added directly
+            because both teams can land in overlapping top-4 scenarios.
+        </p>
+        <pre class="logic-diagram">Sim one lottery -> MIL pick = X, NO pick = Y -> ATL pick = min(X, Y)</pre>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Current Lottery Data</h2>
+            <button id="refresh-data-btn" type="button">Refresh data</button>
+        </div>
+        <p><strong>Last updated (UTC source):</strong> <span id="updated-at">Loading...</span></p>
+        <p class="meta-note">Data updates automatically every 3 hours via GitHub Actions.</p>
+
+        <div class="paste-row">
+            <p class="paste-note">Want the latest standings? <a href="https://tankathon.com" target="_blank" rel="noopener noreferrer">Copy/Paste from Tankathon</a></p>
+            <div class="paste-actions">
+                <button id="toggle-paste-btn" type="button" class="secondary-btn">Paste standings</button>
+                <button id="revert-override-btn" type="button" class="secondary-btn" hidden>Revert to GitHub data</button>
+            </div>
+        </div>
+
+        <div id="paste-panel" class="paste-panel" hidden>
+            <p class="paste-instructions">
+                1. Copy the lottery standings table from Tankathon.
+                2. Paste into the box below.
+                3. Click Parse, then Use standings.
             </p>
-        </header>
-
-        <section class="panel logic-panel">
-            <h2>Best-Of Logic</h2>
-            <p class="logic-copy">
-                ATL gets the better outcome from MIL and NO each simulated lottery. Top-4 odds cannot be added directly
-                because both teams can land in overlapping top-4 scenarios.
-            </p>
-            <pre class="logic-diagram">Sim one lottery -> MIL pick = X, NO pick = Y -> ATL pick = min(X, Y)</pre>
-        </section>
-
-        <section class="panel">
-            <div class="panel-head">
-                <h2>Current Lottery Data</h2>
-                <button id="refresh-data-btn" type="button">Refresh data</button>
+            <textarea id="paste-textarea" rows="7" placeholder="Paste Tankathon standings here..."></textarea>
+            <div class="paste-panel-actions">
+                <button id="parse-standings-btn" type="button">Parse</button>
+                <button id="use-standings-btn" type="button" disabled>Use standings</button>
+                <button id="read-clipboard-btn" type="button" class="secondary-btn">Read clipboard</button>
+                <button id="clear-paste-btn" type="button" class="secondary-btn">Cancel/Clear</button>
             </div>
-            <p><strong>Last updated (UTC source):</strong> <span id="updated-at">Loading...</span></p>
-            <p class="meta-note">Data updates automatically every 3 hours via GitHub Actions.</p>
-            <p id="team-check" class="team-check" hidden></p>
-            <ol id="top14-list" class="top14"></ol>
-            <pre id="load-error" class="error" hidden></pre>
-        </section>
+            <p id="paste-status" class="paste-status" hidden></p>
+            <p class="manual-note">Manual paste updates this page only (does not change GitHub data).</p>
+        </div>
 
-        <section class="panel">
-            <h2>Simulation Controls</h2>
+        <p id="source-label" class="source-label">Source: GitHub data</p>
+        <p id="slot-indicator" class="slot-indicator"></p>
+        <p id="team-check" class="team-check" hidden></p>
+        <ol id="top14-list" class="top14"></ol>
+        <pre id="load-error" class="error" hidden></pre>
+    </section>
 
-            <div class="controls-grid">
-                <div class="controls-col">
-                    <div class="controls">
-                        <label for="sims-input">Simulations</label>
-                        <input id="sims-input" type="number" min="1" max="2000000" step="1000" value="500000">
+    <section class="panel">
+        <h2>Simulation Controls</h2>
 
-                        <div class="default-row">
-                            <span id="sims-recommend" class="recommend-pill">Recommended default: 500,000</span>
-                            <button id="use-default-btn" type="button" class="secondary-btn">Use default</button>
-                        </div>
+        <div class="controls-grid">
+            <div class="controls-col">
+                <div class="controls">
+                    <label for="sims-input">Simulations</label>
+                    <input id="sims-input" type="number" min="1" max="2000000" step="1000" value="200000">
 
-                        <p id="sims-warning" class="sims-warning" hidden></p>
+                    <div class="default-row">
+                        <span id="sims-recommend" class="recommend-pill">Recommended default: 200,000</span>
+                        <button id="use-default-btn" type="button" class="secondary-btn">Use default</button>
                     </div>
 
-                    <button id="run-btn" type="button" disabled class="run-btn">Run simulation</button>
-
-                    <div class="status-line controls-status">
-                        <span id="status-spinner" class="spinner" hidden></span>
-                        <span id="status-text">Idle.</span>
-                    </div>
+                    <p id="sims-warning" class="sims-warning" hidden></p>
                 </div>
 
-                <div class="controls-col advanced-col">
-                    <div class="advanced-head">
-                        <span>Advanced: Seed</span>
-                        <button id="toggle-advanced-btn" type="button" class="secondary-btn advanced-toggle"
-                            aria-expanded="false" aria-controls="advanced-seed-panel">Show</button>
-                    </div>
-                    <div id="advanced-seed-panel" class="advanced-panel" hidden>
-                        <p class="seed-help-copy">
-                            Leave blank for random draws (different result each run). Use the same seed for reproducible
-                            runs.
-                            The seed affects only simulation randomness, not fetched lottery data. Example seeds: 12345,
-                            999.
-                        </p>
-                        <label for="seed-input">Seed (optional)</label>
-                        <input id="seed-input" type="number" min="0" max="4294967295" placeholder="random">
-                    </div>
+                <button id="run-btn" type="button" disabled class="run-btn">Run simulation</button>
+
+                <div class="status-line controls-status">
+                    <span id="status-spinner" class="spinner" hidden></span>
+                    <span id="status-text">Idle.</span>
                 </div>
             </div>
-        </section>
 
-        <section id="results" class="panel" hidden>
-            <h2>Results</h2>
-            <div class="summary-grid">
-                <div><strong>ATL Top-4</strong><br><span id="summary-top4"></span></div>
-                <div><strong>ATL Expected Pick</strong><br><span id="summary-expected"></span></div>
-                <div><strong>ATL Worst-Case Pick</strong><br><span id="summary-worst"></span></div>
-                <div><strong>Seed Used</strong><br><span id="summary-seed"></span></div>
-                <div><strong>Simulations</strong><br><span id="summary-sims"></span></div>
-            </div>
-
-            <div class="chart-shell" aria-label="ATL pick probability chart">
-                <div id="chart-y-labels" class="chart-y-labels"></div>
-                <div class="chart-scroll">
-                    <div id="pick-chart" class="bar-chart"></div>
+            <div class="controls-col advanced-col">
+                <div class="advanced-head">
+                    <span>Advanced: Seed</span>
+                    <button
+                        id="toggle-advanced-btn"
+                        type="button"
+                        class="secondary-btn advanced-toggle"
+                        aria-expanded="false"
+                        aria-controls="advanced-seed-panel"
+                    >Show</button>
+                </div>
+                <div id="advanced-seed-panel" class="advanced-panel" hidden>
+                    <p class="seed-help-copy">
+                        Leave blank for random draws (different result each run). Use the same seed for reproducible runs.
+                        The seed affects only simulation randomness, not fetched lottery data. Example seeds: 12345, 999.
+                    </p>
+                    <label for="seed-input">Seed (optional)</label>
+                    <input id="seed-input" type="number" min="0" max="4294967295" placeholder="random">
                 </div>
             </div>
-            <p id="chart-scale-note" class="chart-scale-note"></p>
+        </div>
+    </section>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ATL Pick</th>
-                            <th class="num-col">Count</th>
-                            <th class="num-col">Probability</th>
-                        </tr>
-                    </thead>
-                    <tbody id="distribution-body"></tbody>
-                </table>
+    <section id="results" class="panel" hidden>
+        <h2>Results</h2>
+        <div class="summary-grid">
+            <div><strong>ATL Top-4</strong><br><span id="summary-top4"></span></div>
+            <div><strong>ATL Expected Pick</strong><br><span id="summary-expected"></span></div>
+            <div><strong>ATL Worst-Case Pick</strong><br><span id="summary-worst"></span></div>
+            <div><strong>Seed Used</strong><br><span id="summary-seed"></span></div>
+            <div><strong>Simulations</strong><br><span id="summary-sims"></span></div>
+        </div>
+
+        <div class="chart-shell" aria-label="ATL pick probability chart">
+            <div id="chart-y-labels" class="chart-y-labels"></div>
+            <div class="chart-scroll">
+                <div id="pick-chart" class="bar-chart"></div>
             </div>
-        </section>
-    </main>
-    <script src="./app.js" defer></script>
+        </div>
+        <p id="chart-scale-note" class="chart-scale-note"></p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ATL Pick</th>
+                    <th class="num-col">Count</th>
+                    <th class="num-col">Probability</th>
+                </tr>
+                </thead>
+                <tbody id="distribution-body"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script src="./app.js" defer></script>
 </body>
-
 </html>

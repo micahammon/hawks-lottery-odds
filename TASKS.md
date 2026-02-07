@@ -1,9 +1,14 @@
 # TASKS
 
 ## current
-- [ ] Await your browser validation of seed toggle behavior and run-button alignment
+- [ ] Await your validation of manual paste parsing and override/revert behavior in browser
 
 ## done
+- [x] Add manual Tankathon copy/paste override UI in the data section
+- [x] Implement robust standings parser with validation and sessionStorage override
+- [x] Integrate override as simulation input source with revert-to-GitHub behavior
+- [x] Add source label, MIL/NO slot indicator, and highlight MIL/NO in list
+- [x] Run syntax checks and provide validation checklist
 - [x] Fix advanced seed section so it is truly collapsed by default and toggles open/closed
 - [x] Align Run simulation directly under the simulations block in the left column
 - [x] Validate JS syntax and confirm updated UI behavior
@@ -26,8 +31,7 @@
 - [x] Audit `worker.js` assumptions against `odds_calc.py` and document unavoidable RNG difference
 
 ## notes
-- [ ] Simulation math unchanged; this pass is UI behavior/layout only
-- [ ] Seed panel now respects `hidden` via `.advanced-panel[hidden] { display: none !important; }`
-- [ ] Run button and status moved into the left controls column directly below simulations block
+- [ ] Worker simulation logic unchanged; only input source selection/UI was expanded
+- [ ] Active standings source order: manual override (if present) else GitHub JSON
+- [ ] Manual override persisted in `sessionStorage` key `manualTop14Override`
 - [ ] Ran syntax check: `node --check app.js`
-- [ ] Noticed unrelated modified file in worktree: `.github/workflows/update-lottery.yml` (untouched)
