@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import cheerio from "cheerio";
+import { load } from "cheerio";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,8 @@ async function fetchHtml(url) {
 }
 
 function extractTop14Abbrevs(html) {
-    const $ = cheerio.load(html);
+    const $ = load(html);
+
 
     const rows =
         $("table.draft-board tr.pick-row.pick-row-lottery").toArray().length
