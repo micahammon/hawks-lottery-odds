@@ -1,6 +1,6 @@
 /*
 Parity notes vs `odds_calc.py`:
-- Same combo table, weighted-sampling method, top-4 draw mechanics, and remaining-pick assignment.
+- Same combo table, sequential top-4 draw mechanics, and remaining-pick assignment.
 - Same ATL rule: hawks_pick = min(NO pick, MIL pick).
 - Same worst-case definition using standings rank + 4 capped at 14.
 - Unavoidable difference: seeded RNG implementation is deterministic but not CPython's `random.Random`,
@@ -108,16 +108,37 @@ function shouldPostProgress(completed, total, lastCount, lastTime) {
 }
 
 function simulateNbaLotteryOnce(teamsInOrder, combosInOrder, rng) {
+    if (!Array.isArray(teamsInOrder) || !Array.isArray(combosInOrder)) {
+        throw new Error("Expected arrays for teamsInOrder and combosInOrder.");
+    }
     if (teamsInOrder.length !== 14 || combosInOrder.length !== 14) {
         throw new Error("Lottery simulation expects 14 teams and 14 combo weights.");
     }
     const comboSum = combosInOrder.reduce((sum, value) => sum + value, 0);
     if (comboSum !== 1000) {
-        throw new Error("Combo counts must sum to 1000.");
+        throw new Error(`Invalid combo sum: ${comboSum}. Expected 1000.`);
     }
 
-    const teamIndices = teamsInOrder.map((_, idx) => idx);
-    const winners = weightedSampleWithoutReplacement(teamIndices, combosInOrder, 4, rng);
+    const remainingIndices = [];
+    const remainingWeights = [];
+    for (let i = 0; i < 14; i += 1) {
+        const w = combosInOrder[i];
+        if (!Number.isFinite(w) || w < 0) {
+            throw new Error(`Invalid weight at index ${i}: ${w}`);
+        }
+        remainingIndices.push(i);
+        remainingWeights.push(w);
+    }
+
+    const winners = [];
+    for (let pick = 1; pick <= 4; pick += 1) {
+        const drawnPos = drawOneIndex(remainingWeights, rng);
+        const winnerIdx = remainingIndices[drawnPos];
+        winners.push(winnerIdx);
+        remainingIndices.splice(drawnPos, 1);
+        remainingWeights.splice(drawnPos, 1);
+    }
+
     const isWinner = new Array(14).fill(false);
     for (const idx of winners) {
         isWinner[idx] = true;
@@ -139,22 +160,29 @@ function simulateNbaLotteryOnce(teamsInOrder, combosInOrder, rng) {
     return pickByTeam;
 }
 
-function weightedSampleWithoutReplacement(items, weights, k, rng) {
-    const keys = [];
-    for (let i = 0; i < items.length; i += 1) {
-        const w = weights[i];
-        if (w <= 0) {
-            continue;
-        }
-        let u = rng();
-        while (u === 0) {
-            u = rng();
-        }
-        const key = Math.pow(u, 1 / w);
-        keys.push({ key, item: items[i] });
+function drawOneIndex(weights, rng) {
+    let total = 0;
+    for (let i = 0; i < weights.length; i += 1) {
+        total += weights[i];
     }
-    keys.sort((a, b) => b.key - a.key);
-    return keys.slice(0, k).map((entry) => entry.item);
+    if (total <= 0) {
+        throw new Error("Cannot draw from empty/zero-weight distribution.");
+    }
+
+    let u = rng();
+    while (u === 0) {
+        u = rng();
+    }
+    let r = u * total;
+
+    for (let i = 0; i < weights.length; i += 1) {
+        r -= weights[i];
+        if (r <= 0) {
+            return i;
+        }
+    }
+
+    return weights.length - 1;
 }
 
 function worstPossiblePickBestOfTwoFromOrder(teamsInOrder, teamAIdx, teamBIdx) {

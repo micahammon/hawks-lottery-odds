@@ -85,26 +85,22 @@ def prompt_for_paste():
         lines.append(line)
     return "".join(lines)
 
-def weighted_sample_without_replacement(items, weights, k, rng=random):
-    """
-    Efraimidis–Spirakis algorithm: exact weighted sampling without replacement.
-    items: list of objects
-    weights: list of positive numbers (e.g., NBA combo counts)
-    k: number to sample
-    returns: list of k sampled items
-    """
-    keys = []
-    for item, w in zip(items, weights):
-        if w <= 0:
-            continue
-        # draw u in (0,1], compute key = u^(1/w); keep largest keys
+def draw_one_index(weights, rng=random):
+    total = sum(weights)
+    if total <= 0:
+        raise ValueError("Cannot draw from empty/zero-weight distribution.")
+
+    u = rng.random()
+    while u == 0.0:
         u = rng.random()
-        while u == 0.0:
-            u = rng.random()
-        key = u ** (1.0 / w)
-        keys.append((key, item))
-    keys.sort(reverse=True, key=lambda x: x[0])
-    return [item for _, item in keys[:k]]
+    r = u * total
+
+    for idx, weight in enumerate(weights):
+        r -= weight
+        if r <= 0:
+            return idx
+
+    return len(weights) - 1
 
 def simulate_nba_lottery_once(teams_in_order, combos_in_order, rng=random):
     """
@@ -115,10 +111,23 @@ def simulate_nba_lottery_once(teams_in_order, combos_in_order, rng=random):
     """
     assert len(teams_in_order) == 14
     assert len(combos_in_order) == 14
-    assert sum(combos_in_order) == 1000, "Combo counts should sum to 1000."
+    combo_sum = sum(combos_in_order)
+    if combo_sum != 1000:
+        raise ValueError(f"Invalid combo sum: {combo_sum}. Expected 1000.")
 
-    # Top 4 are lottery winners sampled w/o replacement by combo weights
-    winners = weighted_sample_without_replacement(teams_in_order, combos_in_order, k=4, rng=rng)
+    remaining_teams = list(teams_in_order)
+    remaining_weights = []
+    for idx, weight in enumerate(combos_in_order):
+        if weight < 0:
+            raise ValueError(f"Invalid weight at index {idx}: {weight}")
+        remaining_weights.append(weight)
+
+    winners = []
+    for _ in range(4):
+        drawn_idx = draw_one_index(remaining_weights, rng=rng)
+        winners.append(remaining_teams[drawn_idx])
+        remaining_teams.pop(drawn_idx)
+        remaining_weights.pop(drawn_idx)
 
     # Assign picks 1-4 in the order drawn
     pick_list = winners[:]  # pick 1..4
