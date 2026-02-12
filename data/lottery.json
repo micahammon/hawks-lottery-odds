@@ -1,11 +1,11 @@
 {
   "source": "https://tankathon.com/",
-  "fetched_at_utc": "2026-02-12T03:20:51.668Z",
+  "fetched_at_utc": "2026-02-12T07:16:47.858Z",
   "lottery_top14": [
     "SAC",
     "WAS",
-    "IND",
     "NO",
+    "IND",
     "BKN",
     "UTA",
     "DAL",
@@ -13,8 +13,8 @@
     "MIL",
     "CHI",
     "ATL",
-    "LAC",
+    "POR",
     "CHA",
-    "POR"
+    "LAC"
   ]
 }
