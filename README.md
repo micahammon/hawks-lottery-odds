@@ -31,6 +31,7 @@ Why this exists:
 
 - `data/lottery.json` is updated on a schedule and can also be updated manually:
   - GitHub → Actions → “Update Tankathon lottery order” → Run workflow
+- The updater keeps the existing file when the fetched `lottery_top14` and `source` are unchanged, so unchanged runs do not create a new `lottery.json`.
 
 ## notes
 

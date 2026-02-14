@@ -42,6 +42,14 @@ function extractTop14Abbrevs(html) {
     });
 }
 
+function hasSameLotterySnapshot(prev, next) {
+    if (!prev || !next) return false;
+    if (prev.source !== next.source) return false;
+    if (!Array.isArray(prev.lottery_top14) || !Array.isArray(next.lottery_top14)) return false;
+    if (prev.lottery_top14.length !== next.lottery_top14.length) return false;
+    return prev.lottery_top14.every((abbr, idx) => abbr === next.lottery_top14[idx]);
+}
+
 async function main() {
     let html = null;
     let sourceUrl = null;
@@ -71,6 +79,18 @@ async function main() {
     const outPath = path.join(outDir, "lottery.json");
 
     await fs.mkdir(outDir, { recursive: true });
+    try {
+        const prevRaw = await fs.readFile(outPath, "utf8");
+        const prev = JSON.parse(prevRaw);
+        if (hasSameLotterySnapshot(prev, out)) {
+            console.log(`No changes detected. Kept existing ${outPath}`);
+            console.log(`Top14: ${top14.join(", ")}`);
+            return;
+        }
+    } catch {
+        // Continue and write file when there is no prior file or it can't be parsed.
+    }
+
     await fs.writeFile(outPath, JSON.stringify(out, null, 2) + "\n", "utf8");
 
     console.log(`Wrote ${outPath}`);

@@ -4,6 +4,8 @@
 - [ ] Await next request
 
 ## done
+- [x] Add cache to skip creating a new lottery.json when content is unchanged
+- [x] Verify behavior and update docs if behavior/output contract changes
 - [x] Verify public HTML uses frontend worker logic (not `odds_calc.py`)
 - [x] Replace lottery top-4 sampling with true sequential weighted draws in `worker.js`
 - [x] Keep Python parity by applying same sequential draw model in `odds_calc.py`
@@ -21,3 +23,4 @@
 - [ ] `odds_calc.py` is standalone reference/CLI and not imported by browser runtime
 - [ ] `python -m py_compile odds_calc.py` failed due local `__pycache__` permission issue; validated parse via `python -c "import ast..."`
 - [ ] Sequential draw now removes winner weights each pick for picks 1-4 in both JS and Python
+- [ ] `scripts/update-lottery.mjs` now skips rewriting `data/lottery.json` when source/top14 match previous snapshot
