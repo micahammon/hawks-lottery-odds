@@ -1,6 +1,6 @@
 {
   "source": "https://tankathon.com/",
-  "fetched_at_utc": "2026-02-23T03:18:42.158Z",
+  "fetched_at_utc": "2026-02-23T07:20:18.084Z",
   "lottery_top14": [
     "SAC",
     "IND",
@@ -13,8 +13,8 @@
     "CHI",
     "MIL",
     "CHA",
-    "ATL",
     "LAC",
+    "ATL",
     "POR"
   ]
 }
