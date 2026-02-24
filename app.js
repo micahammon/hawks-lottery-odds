@@ -110,6 +110,9 @@ const state = {
     missingTeams: [],
     shouldScrollAfterRun: false,
     advancedSeedOpen: false,
+    dragTeam: null,
+    dragTargetTeam: null,
+    dragInsertAfter: false,
 };
 
 refs.refreshBtn.addEventListener("click", () => loadData(true));
@@ -122,6 +125,10 @@ refs.runBtn.addEventListener("click", runSimulation);
 refs.useDefaultBtn.addEventListener("click", applyRecommendedDefault);
 refs.simsInput.addEventListener("input", updateSimsFeedback);
 refs.toggleAdvancedBtn.addEventListener("click", toggleAdvancedSeed);
+refs.top14List.addEventListener("dragstart", handleTop14DragStart);
+refs.top14List.addEventListener("dragover", handleTop14DragOver);
+refs.top14List.addEventListener("drop", handleTop14Drop);
+refs.top14List.addEventListener("dragend", clearTop14DragState);
 
 initControls();
 loadData(false);
@@ -274,7 +281,7 @@ function refreshSourceState() {
 
     refs.sourceBox.classList.remove("source-manual", "source-github");
     if (state.overrideTop14) {
-        refs.sourceLabel.textContent = "Manual paste (applied, session-only override)";
+        refs.sourceLabel.textContent = "Manual override (drag/paste, session-only)";
         refs.revertOverrideBtn.hidden = false;
         refs.sourceBox.classList.add("source-manual");
     } else {
@@ -287,6 +294,7 @@ function refreshSourceState() {
 }
 
 function renderTop14(top14) {
+    clearTop14DragState();
     refs.top14List.innerHTML = "";
 
     if (!Array.isArray(top14)) {
@@ -301,11 +309,170 @@ function renderTop14(top14) {
     top14.forEach((team) => {
         const li = document.createElement("li");
         li.textContent = team;
+        li.draggable = !state.running;
+        li.dataset.team = team;
+        li.title = state.running ? "Reordering disabled while simulation is running" : "Drag to reorder";
         if (team === "MIL" || team === "NO") {
             li.classList.add("mil-no");
         }
         refs.top14List.appendChild(li);
     });
+}
+
+function handleTop14DragStart(event) {
+    if (state.running) {
+        event.preventDefault();
+        return;
+    }
+
+    const item = getTop14ListItem(event.target);
+    if (!item) {
+        event.preventDefault();
+        return;
+    }
+
+    state.dragTeam = item.dataset.team || null;
+    state.dragTargetTeam = null;
+    state.dragInsertAfter = false;
+    item.classList.add("dragging");
+    refs.top14List.classList.add("is-dragging");
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", state.dragTeam || "");
+    }
+}
+
+function handleTop14DragOver(event) {
+    if (!state.dragTeam) {
+        return;
+    }
+
+    const item = getTop14ListItem(event.target);
+    if (!item) {
+        event.preventDefault();
+        clearTop14DropIndicators();
+        return;
+    }
+
+    event.preventDefault();
+
+    const targetTeam = item.dataset.team || null;
+    if (!targetTeam) {
+        clearTop14DropIndicators();
+        return;
+    }
+
+    const insertAfter = shouldInsertAfterItem(event, item);
+    state.dragTargetTeam = targetTeam;
+    state.dragInsertAfter = insertAfter;
+    setTop14DropIndicator(item, insertAfter);
+
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+    }
+}
+
+function handleTop14Drop(event) {
+    if (!state.dragTeam) {
+        return;
+    }
+
+    event.preventDefault();
+
+    let targetItem = getTop14ListItem(event.target);
+    let targetTeam = targetItem?.dataset.team || null;
+    let insertAfter = false;
+
+    if (targetItem && targetTeam) {
+        insertAfter = shouldInsertAfterItem(event, targetItem);
+    } else if (state.dragTargetTeam) {
+        targetTeam = state.dragTargetTeam;
+        insertAfter = state.dragInsertAfter;
+    } else {
+        const items = refs.top14List.querySelectorAll("li[data-team]");
+        const lastItem = items[items.length - 1];
+        targetTeam = lastItem?.dataset.team || null;
+        insertAfter = true;
+    }
+
+    const nextTop14 = buildReorderedTop14(getActiveTop14(), state.dragTeam, targetTeam, insertAfter);
+    if (nextTop14) {
+        state.overrideTop14 = nextTop14;
+        persistOverride(nextTop14);
+        refreshSourceState();
+        updateRunAvailability();
+    } else {
+        clearTop14DragState();
+    }
+}
+
+function buildReorderedTop14(top14, draggedTeam, targetTeam, insertAfter) {
+    if (!Array.isArray(top14) || top14.length !== 14) {
+        return null;
+    }
+    if (!draggedTeam || !targetTeam || draggedTeam === targetTeam) {
+        return null;
+    }
+
+    const next = [...top14];
+    const fromIndex = next.indexOf(draggedTeam);
+    const targetIndex = next.indexOf(targetTeam);
+    if (fromIndex < 0 || targetIndex < 0) {
+        return null;
+    }
+
+    next.splice(fromIndex, 1);
+    let insertIndex = next.indexOf(targetTeam);
+    if (insertIndex < 0) {
+        return null;
+    }
+    if (insertAfter) {
+        insertIndex += 1;
+    }
+    next.splice(insertIndex, 0, draggedTeam);
+
+    if (next.length !== 14) {
+        return null;
+    }
+    return next;
+}
+
+function shouldInsertAfterItem(event, item) {
+    const rect = item.getBoundingClientRect();
+    const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top;
+    return clientY >= rect.top + (rect.height / 2);
+}
+
+function getTop14ListItem(target) {
+    if (!(target instanceof Element)) {
+        return null;
+    }
+    const item = target.closest("li[data-team]");
+    if (!item || !refs.top14List.contains(item)) {
+        return null;
+    }
+    return item;
+}
+
+function setTop14DropIndicator(item, insertAfter) {
+    clearTop14DropIndicators();
+    item.classList.add(insertAfter ? "drag-over-after" : "drag-over-before");
+}
+
+function clearTop14DropIndicators() {
+    const marked = refs.top14List.querySelectorAll(".drag-over-before, .drag-over-after");
+    marked.forEach((item) => item.classList.remove("drag-over-before", "drag-over-after"));
+}
+
+function clearTop14DragState() {
+    state.dragTeam = null;
+    state.dragTargetTeam = null;
+    state.dragInsertAfter = false;
+    refs.top14List.classList.remove("is-dragging");
+    clearTop14DropIndicators();
+    const draggingItems = refs.top14List.querySelectorAll(".dragging");
+    draggingItems.forEach((item) => item.classList.remove("dragging"));
 }
 
 function evaluateTeamPresence(top14) {
@@ -745,6 +912,7 @@ function setRunning(running) {
         stopWorker();
     }
 
+    renderTop14(getActiveTop14());
     updateRunAvailability();
 }
 

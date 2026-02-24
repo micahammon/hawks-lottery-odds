@@ -4,6 +4,10 @@
 - [ ] Await next request
 
 ## done
+- [x] Make Current Lottery Data order drag-and-droppable in UI
+- [x] Wire reordered lottery order into simulation odds calculations via session override
+- [x] Update README.md for drag/drop scenario testing behavior
+- [x] Run JS syntax checks for `app.js` and `worker.js`
 - [x] Add cache to skip creating a new lottery.json when content is unchanged
 - [x] Verify behavior and update docs if behavior/output contract changes
 - [x] Verify public HTML uses frontend worker logic (not `odds_calc.py`)
@@ -21,6 +25,7 @@
 ## notes
 - [ ] Public app path is `index.html` -> `app.js` -> `worker.js`
 - [ ] `odds_calc.py` is standalone reference/CLI and not imported by browser runtime
-- [ ] `python -m py_compile odds_calc.py` failed due local `__pycache__` permission issue; validated parse via `python -c "import ast..."`
-- [ ] Sequential draw now removes winner weights each pick for picks 1-4 in both JS and Python
-- [ ] `scripts/update-lottery.mjs` now skips rewriting `data/lottery.json` when source/top14 match previous snapshot
+- [ ] `odds_calc.py` syntax was previously validated via AST parse due local `__pycache__` permission issue
+- [ ] Drag/drop reorders `#top14-list` and persists to existing session override storage
+- [ ] Reordered active top-14 is sent to `worker.js` unchanged through existing `getActiveTop14()` flow
+- [ ] Ran `node --check app.js` and `node --check worker.js`

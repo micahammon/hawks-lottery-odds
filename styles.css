@@ -182,7 +182,34 @@ body {
 .team-check.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: #fcd34d; }
 
 .top14 { margin: 12px 0 0; padding-left: 22px; columns: 2; }
+.top14 li {
+    break-inside: avoid;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    padding: 4px 8px 4px 4px;
+    border: 1px solid transparent;
+    transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.top14 li[draggable="true"] { cursor: grab; }
+.top14 li[draggable="true"]:hover { background: #f8fafc; border-color: #dbe3ee; }
+.top14.is-dragging li[draggable="true"] { cursor: grabbing; }
+.top14 li.dragging { opacity: 0.45; background: #eef2ff; border-color: #c7d2fe; }
+.top14 li.drag-over-before {
+    border-top-color: #0f766e;
+    box-shadow: inset 0 2px 0 0 #0f766e;
+    background: #f0fdfa;
+}
+.top14 li.drag-over-after {
+    border-bottom-color: #0f766e;
+    box-shadow: inset 0 -2px 0 0 #0f766e;
+    background: #f0fdfa;
+}
 .top14 li.mil-no { font-weight: 700; color: #92400e; }
+.drag-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
 
 button {
     border: 0;

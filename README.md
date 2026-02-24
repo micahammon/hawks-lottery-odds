@@ -14,6 +14,8 @@ Why this exists:
 
 - Loads the current projected lottery order (top 14 teams) from `data/lottery.json`
   - This file is automatically updated by a GitHub Action that fetches Tankathon and extracts the top-14 team list.
+- Lets you drag/drop the displayed top-14 order in the UI for session-only what-if scenarios
+  - Reordering creates a manual session override (same as pasted standings) and changes simulation odds immediately.
 - Runs `N` lottery simulations.
 - For each simulation:
   - Simulates MIL’s lottery result and NOP’s lottery result (based on standard lottery odds by slot)
