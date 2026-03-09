@@ -8,7 +8,8 @@ This tool estimates Atlanta’s draft outcomes when **ATL receives the better of
 Why this exists:
 - The combined odds for **#1 overall** are easy to compute by addition (MIL #1 + NOP #1).
 - But combined odds for **top-4** are **not** just a sum, because MIL and NOP outcomes overlap (both can be top-4 in the same simulation).
-- So the correct top-4 probability (and full pick distribution) is estimated via **Monte Carlo simulation**.
+- The app reports ATL **pick #1 probability as an exact analytic value** (no Monte Carlo noise).
+- The app reports ATL **top-4** as a hybrid: exact **#1** + simulated **#2/#3/#4**.
 
 ## what it does
 

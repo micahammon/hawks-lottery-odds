@@ -43,12 +43,12 @@ function runSimulation(payload) {
     const teamNames = lotteryTop14.map((name) => String(name || "").trim());
     const milIndex = findTeamIndex(teamNames, ["MIL", "MILWAUKEE", "MILWAUKEEBUCKS"]);
     const noIndex = findTeamIndex(teamNames, ["NO", "NOP", "NEWORLEANS", "NEWORLEANSPELICANS"]);
+    const exactFirstPickProb = (COMBOS_IN_ORDER[milIndex] + COMBOS_IN_ORDER[noIndex]) / 1000;
 
     const seedUsed = seedInput == null ? makeRandomSeed() : seedInput >>> 0;
     const rng = createRng(seedUsed);
 
     const pickCounts = new Array(15).fill(0);
-    let top4Count = 0;
     let pickSum = 0;
 
     let lastProgressTime = nowMs();
@@ -62,9 +62,6 @@ function runSimulation(payload) {
 
         pickCounts[hawksPick] += 1;
         pickSum += hawksPick;
-        if (hawksPick <= 4) {
-            top4Count += 1;
-        }
 
         const completed = i + 1;
         if (shouldPostProgress(completed, nSims, lastProgressCount, lastProgressTime)) {
@@ -84,13 +81,19 @@ function runSimulation(payload) {
     for (let pick = 1; pick <= 14; pick += 1) {
         pickProbs[pick] = pickCounts[pick] / nSims;
     }
+    // Hawks #1 is analytically exact: MIL #1 + NO #1 (mutually exclusive winners for first draw).
+    pickProbs[1] = exactFirstPickProb;
+
+    const simulatedTop4WithoutFirstProb = (pickCounts[2] + pickCounts[3] + pickCounts[4]) / nSims;
+    const hybridTop4Prob = exactFirstPickProb + simulatedTop4WithoutFirstProb;
 
     return {
         nSims,
         seedUsed,
         pickCounts,
         pickProbs,
-        top4Prob: top4Count / nSims,
+        firstPickExactProb: exactFirstPickProb,
+        top4Prob: hybridTop4Prob,
         expectedPick: pickSum / nSims,
         worstPick: worstPossiblePickBestOfTwoFromOrder(teamNames, noIndex, milIndex),
     };
