@@ -2,6 +2,7 @@
 const DEFAULT_SIMS = 500_000;
 const LARGE_RUN_WARNING_THRESHOLD = 1_000_000;
 const OVERRIDE_STORAGE_KEY = "manualTop14Override";
+const DEFAULT_COMBOS_IN_ORDER = [140, 140, 140, 125, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5];
 
 const TEAM_NAME_VARIANTS = [
     { team: "ATL", names: ["Atlanta", "Atlanta Hawks"] },
@@ -148,6 +149,16 @@ function getActiveTop14() {
     return state.githubData?.lottery_top14 ?? null;
 }
 
+function getActiveLotteryWeights() {
+    if (Array.isArray(state.overrideTop14) && state.overrideTop14.length === 14) {
+        return DEFAULT_COMBOS_IN_ORDER;
+    }
+    if (Array.isArray(state.githubData?.lottery_weights) && state.githubData.lottery_weights.length === 14) {
+        return state.githubData.lottery_weights;
+    }
+    return DEFAULT_COMBOS_IN_ORDER;
+}
+
 function applyRecommendedDefault() {
     refs.simsInput.value = String(DEFAULT_SIMS);
     updateSimsFeedback();
@@ -227,6 +238,12 @@ function validateLotteryData(json) {
     }
     if (!Array.isArray(json.lottery_top14) || json.lottery_top14.length !== 14) {
         throw new Error("Expected `lottery_top14` with exactly 14 teams.");
+    }
+    if (
+        json.lottery_weights != null
+        && (!Array.isArray(json.lottery_weights) || json.lottery_weights.length !== 14)
+    ) {
+        throw new Error("Expected `lottery_weights` to be omitted or contain exactly 14 values.");
     }
     if (typeof json.fetched_at_utc !== "string" || !json.fetched_at_utc.trim()) {
         throw new Error("Missing `fetched_at_utc` timestamp.");
@@ -637,6 +654,7 @@ function runSimulation() {
             nSims,
             seed,
             lotteryTop14: activeTop14,
+            lotteryWeights: getActiveLotteryWeights(),
         },
     });
 }

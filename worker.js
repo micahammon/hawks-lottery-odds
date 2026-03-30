@@ -31,6 +31,7 @@ self.addEventListener("message", (event) => {
 function runSimulation(payload) {
     const nSims = payload?.nSims;
     const lotteryTop14 = payload?.lotteryTop14;
+    const lotteryWeights = payload?.lotteryWeights;
     const seedInput = payload?.seed;
 
     if (!Number.isInteger(nSims) || nSims < 1 || nSims > 2_000_000) {
@@ -39,11 +40,15 @@ function runSimulation(payload) {
     if (!Array.isArray(lotteryTop14) || lotteryTop14.length !== 14) {
         throw new Error("Expected exactly 14 lottery teams.");
     }
+    if (lotteryWeights != null && (!Array.isArray(lotteryWeights) || lotteryWeights.length !== 14)) {
+        throw new Error("Expected `lotteryWeights` to be omitted or contain exactly 14 values.");
+    }
 
     const teamNames = lotteryTop14.map((name) => String(name || "").trim());
+    const comboWeights = (lotteryWeights ?? COMBOS_IN_ORDER).map((value) => Number(value));
     const milIndex = findTeamIndex(teamNames, ["MIL", "MILWAUKEE", "MILWAUKEEBUCKS"]);
     const noIndex = findTeamIndex(teamNames, ["NO", "NOP", "NEWORLEANS", "NEWORLEANSPELICANS"]);
-    const exactFirstPickProb = (COMBOS_IN_ORDER[milIndex] + COMBOS_IN_ORDER[noIndex]) / 1000;
+    const exactFirstPickProb = (comboWeights[milIndex] + comboWeights[noIndex]) / 1000;
 
     const seedUsed = seedInput == null ? makeRandomSeed() : seedInput >>> 0;
     const rng = createRng(seedUsed);
@@ -55,7 +60,7 @@ function runSimulation(payload) {
     let lastProgressCount = 0;
 
     for (let i = 0; i < nSims; i += 1) {
-        const pickByTeam = simulateNbaLotteryOnce(teamNames, COMBOS_IN_ORDER, rng);
+        const pickByTeam = simulateNbaLotteryOnce(teamNames, comboWeights, rng);
         const noPick = pickByTeam[noIndex];
         const milPick = pickByTeam[milIndex];
         const hawksPick = Math.min(noPick, milPick);

@@ -6,6 +6,7 @@ import { load } from "cheerio";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const BASE_COMBOS_IN_ORDER = [140, 140, 140, 125, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5];
 
 const CANDIDATE_URLS = ["https://tankathon.com/", "https://tankathon.com/nba"];
 
@@ -22,9 +23,17 @@ async function fetchHtml(url) {
     return await res.text();
 }
 
-function extractTop14Abbrevs(html) {
-    const $ = load(html);
+function normalizeTeamAbbrev(value) {
+    const up = String(value || "").trim().toUpperCase();
+    if (up === "NOP") return "NO";
+    if (up === "GS") return "GSW";
+    if (up === "SAS") return "SA";
+    if (up === "NYK") return "NY";
+    return up;
+}
 
+function extractTop14Rows(html) {
+    const $ = load(html);
 
     const rows =
         $("table.draft-board tr.pick-row.pick-row-lottery").toArray().length
@@ -36,10 +45,40 @@ function extractTop14Abbrevs(html) {
     }
 
     return rows.slice(0, 14).map((row) => {
-        const abbr = $(row).find("td.name .team-link .mobile").first().text().trim();
+        const abbr = normalizeTeamAbbrev($(row).find("td.name .team-link .mobile").first().text().trim());
         if (!abbr) throw new Error("Failed to extract team abbreviation from a row.");
-        return abbr;
+        const recordParts = $(row).find("td.record .number").toArray().map((node) => $(node).text().trim());
+        if (recordParts.length < 2) {
+            throw new Error(`Failed to extract record for ${abbr}.`);
+        }
+
+        return {
+            team: abbr,
+            record: `${recordParts[0]}-${recordParts[1]}`,
+        };
     });
+}
+
+function buildTieAdjustedWeights(rows) {
+    const weights = [];
+    let start = 0;
+
+    while (start < rows.length) {
+        let end = start + 1;
+        while (end < rows.length && rows[end].record === rows[start].record) {
+            end += 1;
+        }
+
+        const slots = BASE_COMBOS_IN_ORDER.slice(start, end);
+        const averageWeight = slots.reduce((sum, value) => sum + value, 0) / slots.length;
+
+        for (let i = start; i < end; i += 1) {
+            weights.push(averageWeight);
+        }
+        start = end;
+    }
+
+    return weights;
 }
 
 function hasSameLotterySnapshot(prev, next) {
@@ -47,7 +86,10 @@ function hasSameLotterySnapshot(prev, next) {
     if (prev.source !== next.source) return false;
     if (!Array.isArray(prev.lottery_top14) || !Array.isArray(next.lottery_top14)) return false;
     if (prev.lottery_top14.length !== next.lottery_top14.length) return false;
-    return prev.lottery_top14.every((abbr, idx) => abbr === next.lottery_top14[idx]);
+    if (!prev.lottery_top14.every((abbr, idx) => abbr === next.lottery_top14[idx])) return false;
+    if (!Array.isArray(prev.lottery_weights) || !Array.isArray(next.lottery_weights)) return false;
+    if (prev.lottery_weights.length !== next.lottery_weights.length) return false;
+    return prev.lottery_weights.every((weight, idx) => weight === next.lottery_weights[idx]);
 }
 
 async function main() {
@@ -66,12 +108,15 @@ async function main() {
     }
     if (!html) throw new Error(`All fetch attempts failed. Last error: ${lastErr}`);
 
-    const top14 = extractTop14Abbrevs(html);
+    const top14Rows = extractTop14Rows(html);
+    const top14 = top14Rows.map((row) => row.team);
+    const lotteryWeights = buildTieAdjustedWeights(top14Rows);
 
     const out = {
         source: sourceUrl,
         fetched_at_utc: new Date().toISOString(),
         lottery_top14: top14,
+        lottery_weights: lotteryWeights,
     };
 
     const toolRoot = path.resolve(__dirname, "..");
@@ -85,6 +130,7 @@ async function main() {
         if (hasSameLotterySnapshot(prev, out)) {
             console.log(`No changes detected. Kept existing ${outPath}`);
             console.log(`Top14: ${top14.join(", ")}`);
+            console.log(`Weights: ${lotteryWeights.join(", ")}`);
             return;
         }
     } catch {
@@ -95,6 +141,7 @@ async function main() {
 
     console.log(`Wrote ${outPath}`);
     console.log(`Top14: ${top14.join(", ")}`);
+    console.log(`Weights: ${lotteryWeights.join(", ")}`);
 }
 
 main().catch((err) => {
