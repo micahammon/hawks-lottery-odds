@@ -1,10 +1,10 @@
 {
   "source": "https://tankathon.com/",
-  "fetched_at_utc": "2026-04-01T03:44:14.090Z",
+  "fetched_at_utc": "2026-04-02T03:24:44.819Z",
   "lottery_top14": [
     "WAS",
-    "IND",
     "BKN",
+    "IND",
     "SAC",
     "UTA",
     "DAL",
@@ -15,7 +15,7 @@
     "GSW",
     "POR",
     "MIA",
-    "CHA"
+    "ORL"
   ],
   "lottery_weights": [
     140,
@@ -24,13 +24,13 @@
     125,
     105,
     90,
-    75,
-    60,
+    67.5,
+    67.5,
     45,
     30,
     20,
     15,
-    7.5,
-    7.5
+    10,
+    5
   ]
 }
