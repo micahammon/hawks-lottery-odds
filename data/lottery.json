@@ -1,6 +1,6 @@
 {
   "source": "https://tankathon.com/",
-  "fetched_at_utc": "2026-04-02T03:24:44.819Z",
+  "fetched_at_utc": "2026-04-03T07:36:45.588Z",
   "lottery_top14": [
     "WAS",
     "BKN",
@@ -13,7 +13,7 @@
     "CHI",
     "MIL",
     "GSW",
-    "POR",
+    "LAC",
     "MIA",
     "ORL"
   ],
@@ -24,8 +24,8 @@
     125,
     105,
     90,
-    67.5,
-    67.5,
+    75,
+    60,
     45,
     30,
     20,
