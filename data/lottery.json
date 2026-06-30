@@ -1,6 +1,6 @@
 {
   "source": "https://tankathon.com/",
-  "fetched_at_utc": "2026-06-25T20:21:01.195Z",
+  "fetched_at_utc": "2026-06-30T22:38:44.722Z",
   "lottery_top14": [
     "SAC",
     "MEM",
@@ -8,14 +8,14 @@
     "CHI",
     "BKN",
     "NO",
+    "LAC",
     "DAL",
-    "UTA",
     "WAS",
-    "MIA",
-    "PHX",
-    "POR",
     "CHA",
-    "ORL"
+    "UTA",
+    "PHX",
+    "ORL",
+    "ATL"
   ],
   "lottery_weights": [
     71.42857142857143,
